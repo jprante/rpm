@@ -128,7 +128,7 @@ public class RpmPackageRuleTest extends RpmBaseObjectTest {
         rpmFileRule.setIncludes(includes);
         rpmFileRule.setExcludes(excludes);
         String[] files = rpmFileRule.listFiles();
-        assertEquals(63, files.length);
+        assertEquals(62, files.length);
     }
 
     @Test(expected = PathOutsideBuildPathException.class)
@@ -147,7 +147,7 @@ public class RpmPackageRuleTest extends RpmBaseObjectTest {
         rpmFileRule.setIncludes(includes);
         rpmFileRule.setExcludes(excludes);
         String[] files = rpmFileRule.addFiles(builder);
-        assertEquals(63, files.length);
-        assertEquals(94, builder.getContents().size());
+        assertEquals(62, files.length);
+        assertEquals(92, builder.getContents().size());
     }
 }
