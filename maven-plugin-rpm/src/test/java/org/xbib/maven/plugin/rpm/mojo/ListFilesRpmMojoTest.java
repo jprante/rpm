@@ -43,7 +43,7 @@ public class ListFilesRpmMojoTest {
         List<RpmPackage> packages = new ArrayList<>();
         packages.add(rpmPackage);
         this.mojo.setPackages(packages);
-        this.mojo.setBuildPath(String.format("%s%sbuild", this.testOutputPath, File.separator));
+        this.mojo.setBuildPath(String.format("%s%sfiles", this.testOutputPath, File.separator));
     }
 
     @Test

@@ -47,7 +47,7 @@ public class RpmPackageTest {
         project.setBuild(projectBuild);
         PackageRpmMojo mojo = new PackageRpmMojo();
         mojo.setProject(project);
-        mojo.setBuildPath(String.format("%s%sbuild", testOutputPath, File.separator));
+        mojo.setBuildPath(String.format("%s%sfiles", testOutputPath, File.separator));
         rpmPackage.setMojo(mojo);
     }
 

@@ -50,7 +50,7 @@ public class RpmPackageRuleTest extends RpmBaseObjectTest {
         rpmPackage.setMojo(mojo);
         rpmFileRule = new RpmPackageRule();
         rpmFileRule.setPackage(rpmPackage);
-        rpmFileRule.setBase("build");
+        rpmFileRule.setBase("files");
     }
 
     @Override
@@ -115,7 +115,7 @@ public class RpmPackageRuleTest extends RpmBaseObjectTest {
 
     @Test
     public void scanPathAccessor() throws InvalidPathException {
-        String scanPath = String.format("%s%sbuild", new File(testOutputPath).getAbsolutePath(), File.separator);
+        String scanPath = String.format("%s%sfiles", new File(testOutputPath).getAbsolutePath(), File.separator);
         assertEquals(scanPath, rpmFileRule.getScanPath());
     }
 

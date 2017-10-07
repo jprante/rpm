@@ -33,7 +33,7 @@ public class PackageRpmMojoTest {
         Build projectBuild = new Build();
         projectBuild.setDirectory(testOutputPath);
         project = new MavenProject();
-        project.setGroupId("uk.co.codezen");
+        project.setGroupId("org.xbib");
         project.setArtifactId("packagerpmmojo-artifact");
         project.setName("test");
         project.setUrl("http://www.example.com");
@@ -49,7 +49,7 @@ public class PackageRpmMojoTest {
         List<RpmPackage> packages = new ArrayList<>();
         packages.add(rpmPackage);
         mojo.setPackages(packages);
-        mojo.setBuildPath(String.format("%s%sbuild", testOutputPath, File.separator));
+        mojo.setBuildPath(String.format("%s%sfiles", testOutputPath, File.separator));
     }
 
     @Test
