@@ -1,0 +1,6 @@
+rootProject.name = name
+
+include 'rpm-core'
+include 'rpm-ant'
+include 'gradle-plugin-rpm'
+include 'maven-plugin-rpm'

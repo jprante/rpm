@@ -1,0 +1,4 @@
+dependencies {
+    compile project(':rpm-core')
+    compile "org.apache.ant:ant:${project.property('ant.version')}"
+}

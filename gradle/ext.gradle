@@ -1,0 +1,8 @@
+ext {
+    user = 'xbib'
+    projectName = 'rpm'
+    projectDescription = 'Java 8 RPM implementation with plugins for Ant, Maven, Gradle'
+    scmUrl = 'https://github.com/xbib/rpm'
+    scmConnection = 'scm:git:git://github.com/xbib/rpm.git'
+    scmDeveloperConnection = 'scm:git:git://github.com/xbib/rpm.git'
+}

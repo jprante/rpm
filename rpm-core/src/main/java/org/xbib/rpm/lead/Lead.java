@@ -1,0 +1,143 @@
+package org.xbib.rpm.lead;
+
+import org.xbib.rpm.io.ChannelWrapper;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
+import java.nio.charset.StandardCharsets;
+
+/**
+ *
+ */
+public class Lead {
+
+    public static final int LEAD_SIZE = 96;
+
+    private static final int MAGIC_WORD = 0xEDABEEDB;
+
+    private byte major;
+
+    private byte minor;
+
+    private PackageType type;
+
+    private Architecture arch;
+
+    private String name;
+
+    private Os os;
+
+    private short sigtype;
+
+    public Lead() {
+        this.major = 4;
+        this.minor = 0;
+        this.type = PackageType.BINARY;
+        this.arch = Architecture.NOARCH;
+        this.os = Os.LINUX;
+        this.name = "default";
+        this.sigtype = 5; /* 5 = header-style signature */
+    }
+
+    public CharSequence getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Architecture getArch() {
+        return arch;
+    }
+
+    public void setArch(Architecture arch) {
+        this.arch = arch;
+    }
+
+    public void setMajor(byte major) {
+        this.major = major;
+    }
+
+    public void setMinor(byte minor) {
+        this.minor = minor;
+    }
+
+    public void setType(PackageType type) {
+        this.type = type;
+    }
+
+    public void setOs(Os os) {
+        this.os = os;
+    }
+
+    public void setSigtype(short sigtype) {
+        this.sigtype = sigtype;
+    }
+
+    public void read(ReadableByteChannel channel) throws IOException {
+        ByteBuffer lead = ChannelWrapper.fill(channel, LEAD_SIZE);
+        int magic = lead.getInt();
+        if (MAGIC_WORD != magic) {
+            throw new IOException("check expected " +
+                    Integer.toHexString(0xff & MAGIC_WORD) + ", found " + Integer.toHexString(0xff & magic));
+        }
+        major = lead.get();
+        minor = lead.get();
+        type = PackageType.values()[lead.getShort()];
+        final short tmp = lead.getShort();
+        if (tmp < Architecture.values().length) {
+            arch = Architecture.values()[tmp];
+        }
+        ByteBuffer data = ByteBuffer.allocate(66);
+        lead.get(data.array());
+        StringBuilder builder = new StringBuilder();
+        byte b;
+        while ((data.hasRemaining() && (b = data.get()) != 0)) {
+            builder.append((char) b);
+        }
+        name = builder.toString();
+        short o = lead.getShort();
+        if (o != 0xFF) {
+            os = Os.values()[o];
+        } else {
+            os = Os.UNKNOWN;
+        }
+        sigtype = lead.getShort();
+        if (lead.remaining() != 16) {
+            throw new IllegalStateException("Expected 16 remaining, found '" + lead.remaining() + "'.");
+        }
+    }
+
+    public void write(WritableByteChannel channel) throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(LEAD_SIZE);
+        buffer.putInt(MAGIC_WORD);
+        buffer.put(major);
+        buffer.put(minor);
+        buffer.putShort((short) type.ordinal());
+        buffer.putShort((short) arch.ordinal());
+        byte[] data = new byte[66];
+        byte[] encoded = name.getBytes(StandardCharsets.UTF_8);
+        System.arraycopy(encoded, 0, data, 0, data.length > encoded.length ? encoded.length : data.length);
+        buffer.put(data);
+        buffer.putShort((short) (os.ordinal() != 0 ? os.ordinal() : 0xFF));
+        buffer.putShort(sigtype);
+        buffer.position(buffer.position() + 16);
+        buffer.flip();
+        if (buffer.remaining() != LEAD_SIZE) {
+            throw new IllegalStateException("Invalid lead size generated with '" + buffer.remaining() + "' bytes.");
+        }
+        ChannelWrapper.empty(channel, buffer);
+    }
+
+    public String toString() {
+        return "Version: " + major + "." + minor + "\n" +
+                "Type: " + type + "\n" +
+                "Arch: " + arch + "\n" +
+                "Name: " + name + "\n" +
+                "OS: " + os + "\n" +
+                "Sig type: " + sigtype + "\n";
+    }
+}
