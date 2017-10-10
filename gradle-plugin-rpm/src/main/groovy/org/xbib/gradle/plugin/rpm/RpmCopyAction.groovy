@@ -181,6 +181,7 @@ class RpmCopyAction implements CopyAction {
             builder.setPrivateKeyId task.getSigningKeyId()
             builder.setPrivateKeyPassphrase task.getSigningKeyPassphrase()
             builder.setPrivateKeyRing task.getSigningKeyRing()
+            builder.setPrivateKeyHashAlgo task.getSigningKeyHashAlgo()
         }
         String sourcePackage = task.sourcePackage
         if (!sourcePackage) {

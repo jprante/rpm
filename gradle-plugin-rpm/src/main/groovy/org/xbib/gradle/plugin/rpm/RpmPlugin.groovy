@@ -24,7 +24,7 @@ class RpmPlugin implements Plugin<Project> {
         project.ext.Rpm = Rpm.class
 
         RpmBuilder.metaClass.getDefaultSourcePackage() {
-            format.getLead().getName() + "-src.rpm"
+            format.getLead().getName() + ".src.rpm"
         }
 
         project.tasks.withType(Rpm) { Rpm task ->

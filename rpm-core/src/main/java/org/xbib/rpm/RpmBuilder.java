@@ -95,25 +95,25 @@ public class RpmBuilder {
 
     private String privateKeyPassphrase;
 
-    private int triggerCounter = 0;
+    private HashAlgo privateKeyHashAlgo;
 
-    private HashAlgo hashAlgo;
+    private int triggerCounter = 0;
 
     private CompressionType compressionType;
 
     private String packageName;
 
     public RpmBuilder() {
-        this(HashAlgo.SHA256, CompressionType.GZIP);
+        this(HashAlgo.SHA1, CompressionType.GZIP);
     }
 
     /**
      * Initializes the builder and sets some required fields to known values.
-     * @param hashAlgo the hash algo
+     * @param privateKeyHashAlgo the hash algo
      *  @param compressionType compression type
      */
-    public RpmBuilder(HashAlgo hashAlgo, CompressionType compressionType) {
-        this.hashAlgo = hashAlgo;
+    public RpmBuilder(HashAlgo privateKeyHashAlgo, CompressionType compressionType) {
+        this.privateKeyHashAlgo = privateKeyHashAlgo;
         this.compressionType = compressionType;
         format.getHeader().createEntry(HeaderTag.HEADERI18NTABLE, "C");
         format.getHeader().createEntry(HeaderTag.BUILDTIME, (int) (System.currentTimeMillis() / 1000));
@@ -1453,6 +1453,17 @@ public class RpmBuilder {
     }
 
     /**
+     * Hash algo for the private key.
+     *
+     * @param privateKeyHashAlgo the private key hash algo
+     */
+    public void setPrivateKeyHashAlgo(String privateKeyHashAlgo) {
+        if (privateKeyHashAlgo != null) {
+            this.privateKeyHashAlgo = HashAlgo.valueOf(privateKeyHashAlgo);
+        }
+    }
+
+    /**
      * Set RPM package name.
      *
      * @param packageName the RPM package name
@@ -1538,8 +1549,8 @@ public class RpmBuilder {
                     triggerscriptprogs.toArray(new String[triggerscriptprogs.size()]));
         }
         if (contents.size() > 0) {
-            format.getHeader().createEntry(HeaderTag.FILEDIGESTALGOS, hashAlgo.num());
-            format.getHeader().createEntry(HeaderTag.FILEDIGESTS, contents.getDigests(hashAlgo));
+            format.getHeader().createEntry(HeaderTag.FILEDIGESTALGOS, HashAlgo.MD5.num());
+            format.getHeader().createEntry(HeaderTag.FILEDIGESTS, contents.getDigests(HashAlgo.MD5));
             format.getHeader().createEntry(HeaderTag.FILESIZES, contents.getSizes());
             format.getHeader().createEntry(HeaderTag.FILEMODES, contents.getModes());
             format.getHeader().createEntry(HeaderTag.FILERDEVS, contents.getRdevs());
@@ -1566,7 +1577,7 @@ public class RpmBuilder {
         shaEntry.setSize(SHASIZE);
 
         SignatureGenerator signatureGenerator = new SignatureGenerator(privateKeyRing, privateKeyId, privateKeyPassphrase);
-        signatureGenerator.prepare(format.getSignatureHeader(), hashAlgo);
+        signatureGenerator.prepare(format.getSignatureHeader(), privateKeyHashAlgo);
         format.getLead().write(channel);
         SpecEntry<byte[]> signatureEntry =
                 (SpecEntry<byte[]>) format.getSignatureHeader().addEntry(SignatureTag.SIGNATURES, 16);
@@ -1576,7 +1587,7 @@ public class RpmBuilder {
         ChannelWrapper.Key<Integer> sigsizekey = output.start();
         ChannelWrapper.Key<byte[]> shakey = signatureGenerator.startDigest(output, "SHA");
         ChannelWrapper.Key<byte[]> md5key = signatureGenerator.startDigest(output, "MD5");
-        signatureGenerator.startBeforeHeader(output, hashAlgo);
+        signatureGenerator.startBeforeHeader(output, privateKeyHashAlgo);
         // Region concept. This tag contains an index record which specifies the portion of the Header Record
         // which was used for the calculation of a signature. This data shall be preserved or any header-only signature
         // will be invalidated.

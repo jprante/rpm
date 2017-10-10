@@ -37,6 +37,9 @@ class SystemPackagingExtension {
     String signingKeyId
 
     @Input @Optional
+    String signingKeyHashAlgo
+
+    @Input @Optional
     String user
 
     @Input @Optional

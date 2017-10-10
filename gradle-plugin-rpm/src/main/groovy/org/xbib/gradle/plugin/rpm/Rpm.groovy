@@ -113,55 +113,55 @@ class Rpm extends AbstractArchiveTask {
     @Input
     @Optional
     List<Object> getAllConfigurationPaths() {
-        return getConfigurationPaths() + (projectPackagingExtension?.getConfigurationPaths()?: [])
+        getConfigurationPaths() + (projectPackagingExtension?.getConfigurationPaths()?: [])
     }
 
     @Input
     @Optional
     List<Object> getAllPreInstallCommands() {
-        return getPreInstallCommands() + (projectPackagingExtension?.getPreInstallCommands() ?: [])
+        getPreInstallCommands() + (projectPackagingExtension?.getPreInstallCommands() ?: [])
     }
 
     @Input
     @Optional
     List<Object> getAllPostInstallCommands() {
-        return getPostInstallCommands() + (projectPackagingExtension?.getPostInstallCommands() ?: [])
+        getPostInstallCommands() + (projectPackagingExtension?.getPostInstallCommands() ?: [])
     }
 
     @Input
     @Optional
     List<Object> getAllPreUninstallCommands() {
-        return getPreUninstallCommands() + (projectPackagingExtension?.getPreUninstallCommands() ?: [])
+        getPreUninstallCommands() + (projectPackagingExtension?.getPreUninstallCommands() ?: [])
     }
 
     @Input
     @Optional
     List<Object> getAllPostUninstallCommands() {
-        return getPostUninstallCommands() + (projectPackagingExtension?.getPostUninstallCommands() ?: [])
+        getPostUninstallCommands() + (projectPackagingExtension?.getPostUninstallCommands() ?: [])
     }
 
     @Input
     @Optional
     List<Object> getAllPreTransCommands() {
-        return getPreTransCommands() + projectPackagingExtension?.getPreTransCommands()
+        getPreTransCommands() + projectPackagingExtension?.getPreTransCommands()
     }
 
     @Input
     @Optional
     List<Object> getAllPostTransCommands() {
-        return getPostTransCommands() + projectPackagingExtension?.getPostTransCommands()
+        getPostTransCommands() + projectPackagingExtension?.getPostTransCommands()
     }
 
     @Input
     @Optional
     List<Object> getAllCommonCommands() {
-        return getCommonCommands() + projectPackagingExtension?.getCommonCommands()
+        getCommonCommands() + projectPackagingExtension?.getCommonCommands()
     }
 
     @Input
     @Optional
     List<Object> getAllSupplementaryControlFiles() {
-        return getSupplementaryControlFiles() + (projectPackagingExtension?.getSupplementaryControlFiles() ?: [])
+        getSupplementaryControlFiles() + (projectPackagingExtension?.getSupplementaryControlFiles() ?: [])
     }
 
     @Input
@@ -262,6 +262,9 @@ class Rpm extends AbstractArchiveTask {
         })
         mapping.map('signingKeyRing', {
             projectPackagingExtension?.getSigningKeyRing()
+        })
+        mapping.map('signingKeyHashAlgo', {
+            projectPackagingExtension?.getSigningKeyHashAlgo()
         })
         mapping.map('user', {
             projectPackagingExtension?.getUser()?:getPackager()
