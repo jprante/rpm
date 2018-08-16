@@ -6,18 +6,21 @@ dependencies {
     compile project(':rpm-core')
     compile "org.mvel:mvel2:${project.property('mvel.version')}"
     compile "org.apache.ant:ant:${project.property('ant.version')}"
+
     compileOnly "org.apache.maven:maven-core:${project.property('maven.version')}"
     compileOnly "org.apache.maven:maven-plugin-api:${project.property('maven.version')}"
-    compileOnly 'org.apache.maven.plugin-tools:maven-plugin-annotations:3.5'
+    compileOnly "org.apache.maven.plugin-tools:maven-plugin-annotations:${project.property('maven-plugin-annotations.version')}"
+
     testCompile "org.apache.maven:maven-core:${project.property('maven.version')}"
     testCompile "org.apache.maven:maven-plugin-api:${project.property('maven.version')}"
-    testCompile 'org.apache.maven.plugin-tools:maven-plugin-annotations:3.5'
+    testCompile "org.apache.maven.plugin-tools:maven-plugin-annotations:${project.property('maven-plugin-annotations.version')}"
+
     mavenEmbedder "org.apache.maven:maven-embedder:${project.property('maven.version')}"
-    mavenEmbedder 'org.slf4j:slf4j-simple:1.7.5'
-    mavenEmbedder 'org.apache.maven.wagon:wagon-http:2.12:shaded'
-    mavenEmbedder 'org.apache.maven.wagon:wagon-provider-api:2.12'
-    mavenEmbedder 'org.eclipse.aether:aether-connector-basic:1.0.2.v20150114'
-    mavenEmbedder 'org.eclipse.aether:aether-transport-wagon:1.0.2.v20150114'
+    mavenEmbedder "org.slf4j:slf4j-simple:1.7.25"
+    mavenEmbedder "org.apache.maven.wagon:wagon-http:3.1.0:shaded"
+    mavenEmbedder "org.apache.maven.wagon:wagon-provider-api:3.1.0"
+    mavenEmbedder "org.eclipse.aether:aether-connector-basic:1.1.0"
+    mavenEmbedder "org.eclipse.aether:aether-transport-wagon:1.1.0"
 }
 
 test {
@@ -51,7 +54,7 @@ task generatePluginDescriptor(type: JavaExec, dependsOn: compileJava) {
             '--batch-mode',
             '--settings', '../config/maven/repo-settings.xml',
             '--file', "${buildDir}/pom.xml",
-            "org.apache.maven.plugins:maven-plugin-plugin:3.5:descriptor"
+            "org.apache.maven.plugins:maven-plugin-plugin:${project.property('maven-plugin-plugin.version')}:descriptor"
     ]
     doFirst {
         install.repositories.mavenInstaller.pom.withXml {

@@ -17,7 +17,7 @@ class BuildLauncherBackedGradleHandle implements GradleHandle {
 
     final private List<String> tasksExecuted
 
-    public static final String PROGRESS_TASK_PREFIX = "Execute :"
+    public static final String PROGRESS_TASK_PREFIX = "Task :"
 
     private GradleHandleBuildListener buildListener
 
@@ -30,8 +30,8 @@ class BuildLauncherBackedGradleHandle implements GradleHandle {
             @Override
             void statusChanged(ProgressEvent event) {
                 // These are free form strings, :-(
-                if (event.getDescription().startsWith(PROGRESS_TASK_PREFIX)) { // E.g. "Execute :echo"
-                    String taskName = event.getDescription().substring(PROGRESS_TASK_PREFIX.length() - 1)
+                if (event.description.startsWith(PROGRESS_TASK_PREFIX)) { // E.g. "Task :echo"
+                    String taskName = event.description.substring(PROGRESS_TASK_PREFIX.length() - 1)
                     tasksExecuted.add(taskName)
                 }
             }
@@ -72,7 +72,7 @@ class BuildLauncherBackedGradleHandle implements GradleHandle {
             buildListener?.buildFinished()
         }
         String stdout = getStandardOutput()
-        List<MinimalExecutedTask> tasks = new ArrayList<MinimalExecutedTask>()
+        List<MinimalExecutedTask> tasks = new ArrayList<>()
         for (String taskName: tasksExecuted) {
             boolean upToDate = isTaskUpToDate(stdout, taskName)
             boolean skipped = isTaskSkipped(stdout, taskName)

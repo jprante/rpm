@@ -21,6 +21,6 @@ task buildRpm(type: Rpm) {
         def result = runTasksSuccessfully('buildRpm')
 
         then:
-        result.wasUpToDate(':buildRpm')
+        result.wasUpToDate('buildRpm')
     }
 }
