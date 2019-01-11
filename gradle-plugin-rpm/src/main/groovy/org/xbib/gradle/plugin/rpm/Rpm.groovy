@@ -1,9 +1,13 @@
 package org.xbib.gradle.plugin.rpm
 
+import groovy.util.logging.Log4j
 import org.gradle.api.file.FileCollection
+import org.gradle.api.file.RegularFile
 import org.gradle.api.internal.ConventionMapping
 import org.gradle.api.internal.IConventionAware
-import org.gradle.api.tasks.AbstractCopyTask
+import org.gradle.api.model.ObjectFactory
+import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Optional
@@ -11,16 +15,22 @@ import org.gradle.api.tasks.Nested
 import org.gradle.api.tasks.SkipWhenEmpty
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
+import org.gradle.util.GUtil
 import org.xbib.rpm.lead.Architecture
 import org.xbib.rpm.lead.Os
 import org.xbib.rpm.lead.PackageType
 
+import javax.annotation.Nullable
 import java.nio.file.Path
+import java.util.concurrent.Callable
 
 /**
  *
  */
+@Log4j
 class Rpm extends AbstractArchiveTask {
+
+    final ObjectFactory objectFactory
 
 	@Input
     @Optional
@@ -34,12 +44,27 @@ class Rpm extends AbstractArchiveTask {
 
     Rpm() {
         super()
+        objectFactory = project.objects
         systemPackagingExtension = new SystemPackagingExtension()
         projectPackagingExtension = project.extensions.findByType(ProjectPackagingExtension)
         if (projectPackagingExtension) {
             getRootSpec().with(projectPackagingExtension.delegateCopySpec)
         }
-        extension = 'rpm'
+        archiveExtension.set('rpm')
+
+        // override archive file name provider in Gradle 5
+        Callable<String> archiveFileNameProvider = new Callable<String>() {
+            @Override
+            String call() throws Exception {
+                constructArchiveFile()
+            }
+        }
+        getArchiveFileName().set(getProject().provider(archiveFileNameProvider))
+    }
+
+    @Override
+    RpmCopyAction createCopyAction() {
+        new RpmCopyAction(this)
     }
 
     @Override
@@ -51,7 +76,7 @@ class Rpm extends AbstractArchiveTask {
     }
 
     @Override
-    AbstractCopyTask from(Object... sourcePaths) {
+    Rpm from(Object... sourcePaths) {
         for (Object sourcePath : sourcePaths) {
             from(sourcePath, {})
         }
@@ -59,7 +84,7 @@ class Rpm extends AbstractArchiveTask {
     }
 
     @Override
-    AbstractCopyTask from(Object sourcePath, Closure c) {
+    Rpm from(Object sourcePath, Closure c) {
         def preserveSymlinks = FromConfigurationFactory.preserveSymlinks(this)
         use(CopySpecEnhancement) {
             getMainSpec().from(sourcePath, c << preserveSymlinks)
@@ -68,7 +93,7 @@ class Rpm extends AbstractArchiveTask {
     }
 
     @Override
-    AbstractArchiveTask into(Object destPath, Closure configureClosure) {
+    Rpm into(Object destPath, Closure configureClosure) {
         use(CopySpecEnhancement) {
             getMainSpec().into(destPath, configureClosure)
         }
@@ -76,7 +101,7 @@ class Rpm extends AbstractArchiveTask {
     }
 
     @Override
-    AbstractCopyTask exclude(Closure excludeSpec) {
+    Rpm exclude(Closure excludeSpec) {
         use(CopySpecEnhancement) {
             getMainSpec().exclude(excludeSpec)
         }
@@ -84,7 +109,7 @@ class Rpm extends AbstractArchiveTask {
     }
 
     @Override
-    AbstractCopyTask filter(Closure closure) {
+    Rpm filter(Closure closure) {
         use(CopySpecEnhancement) {
             getMainSpec().filter(closure)
         }
@@ -92,22 +117,11 @@ class Rpm extends AbstractArchiveTask {
     }
 
     @Override
-    AbstractCopyTask rename(Closure closure) {
+    Rpm rename(Closure closure) {
         use(CopySpecEnhancement) {
             getMainSpec().rename(closure)
         }
         this
-    }
-
-    @Override
-    RpmCopyAction createCopyAction() {
-        new RpmCopyAction(this)
-    }
-
-    @Input
-    @Optional
-    void setArch(Object arch) {
-        setArchStr((arch instanceof Architecture)?arch.name():arch.toString())
     }
 
     @Input
@@ -243,13 +257,13 @@ class Rpm extends AbstractArchiveTask {
         ConventionMapping mapping = ((IConventionAware) this).getConventionMapping()
 
         mapping.map('packageName', {
-            projectPackagingExtension?.getPackageName()?:getBaseName()
-        })
-        mapping.map('release', {
-            projectPackagingExtension?.getRelease()?:getClassifier()
+            projectPackagingExtension?.getPackageName()?:getArchiveBaseName().getOrNull()?:'test'
         })
         mapping.map('version', {
             sanitizeVersion(projectPackagingExtension?.getVersion()?:project.getVersion().toString())
+        })
+        mapping.map('release', {
+            projectPackagingExtension?.getRelease()?:''
         })
         mapping.map('epoch', {
             projectPackagingExtension?.getEpoch()?:0
@@ -327,40 +341,33 @@ class Rpm extends AbstractArchiveTask {
         mapping.map('postUninstall', {
             projectPackagingExtension?.getPostUninstall()
         })
-        mapping.map('archiveName', {
-            assembleArchiveName()
-        })
         mapping.map('fileType', {
             projectPackagingExtension?.getFileType()
         })
         mapping.map('addParentDirs', {
             projectPackagingExtension?.getAddParentDirs()?:true
         })
-        mapping.map('archStr', {
-            projectPackagingExtension?.getArchStr()?:Architecture.NOARCH.name()
+        mapping.map('arch', {
+            projectPackagingExtension?.arch?:Architecture.NOARCH
         })
         mapping.map('os', {
-            projectPackagingExtension?.getOs()?:Os.UNKNOWN
+            projectPackagingExtension?.os?:Os.UNKNOWN
         })
         mapping.map('type', {
-            projectPackagingExtension?.getType()?:PackageType.BINARY
+            projectPackagingExtension?.type?:PackageType.BINARY
         })
         mapping.map('prefixes', {
             projectPackagingExtension?.getPrefixes()?:[]
         })
-    }
-
-    String assembleArchiveName() {
-        String name = getPackageName()
-        name += getVersion() ? "-${getVersion()}" : ''
-        name += getRelease() ? "-${getRelease()}" : ''
-        name += getArchString() ? ".${getArchString()}" : ''
-        name += getExtension() ? ".${getExtension()}" : ''
-        name
-    }
-
-    String getArchString() {
-        getArchStr()?.toLowerCase()
+        mapping.map('archiveName', {
+            constructArchiveFile()
+        })
+        mapping.map('archivePath', {
+            determineArchivePath()
+        })
+        mapping.map('archiveFile', {
+            determineArchiveFile()
+        })
     }
 
     void prefixes(String... addPrefixes) {
@@ -379,6 +386,26 @@ class Rpm extends AbstractArchiveTask {
         changeLogFile
     }
 
+    Provider<RegularFile> determineArchiveFile() {
+        Property<RegularFile> regularFile = objectFactory.fileProperty()
+        regularFile.set(new DestinationFile(new File(getDestinationDirectory().get().asFile.path, constructArchiveFile())))
+        regularFile
+    }
+
+    File determineArchivePath() {
+        determineArchiveFile().get().asFile
+    }
+
+    String constructArchiveFile() {
+        String name = GUtil.elvis(getPackageName(), "")
+        name += maybe(name, '-', getVersion())
+        name += maybe(name, '-', getRelease())
+        name += maybe(name, '.', getArch().name().toLowerCase())
+        String extension = archiveExtension.getOrNull()
+        name += GUtil.isTrue(extension) ? "." + extension : ""
+        name
+    }
+
     static String sanitizeVersion(String version) {
         version.replaceAll(/\+.*/, '').replaceAll(/-/, '~')
     }
@@ -388,6 +415,34 @@ class Rpm extends AbstractArchiveTask {
             return InetAddress.localHost.hostName
         } catch (UnknownHostException ignore) {
             return "unknown"
+        }
+    }
+
+    static String maybe(@Nullable String prefix, String delimiter, @Nullable String value) {
+        if (GUtil.isTrue(value)) {
+            if (GUtil.isTrue(prefix)) {
+                return delimiter.concat(value)
+            } else {
+                return value
+            }
+        }
+        ""
+    }
+
+    static class DestinationFile implements RegularFile {
+        private final File file
+
+        DestinationFile(File file) {
+            this.file = file
+        }
+
+        String toString() {
+            return this.file.toString()
+        }
+
+        @Override
+        File getAsFile() {
+            return this.file
         }
     }
 }

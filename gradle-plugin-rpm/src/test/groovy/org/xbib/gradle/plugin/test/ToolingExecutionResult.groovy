@@ -1,4 +1,4 @@
-package org.xbib.gradle.plugin.rpm
+package org.xbib.gradle.plugin.test
 
 /**
  * Hold additional response data, that is only available

@@ -13,10 +13,10 @@ apply plugin: 'com.gradle.plugin-publish'
 dependencies {
     compile gradleApi()
     compile project(':rpm-core')
-    compileOnly "org.codehaus.groovy:groovy-all:${project.property('groovy.version')}"
+    compileOnly "org.codehaus.groovy:groovy:${project.property('groovy.version')}"
     testCompile "junit:junit:${project.property('junit.version')}"
     testCompile("org.spockframework:spock-core:${project.property('spock-core.version')}") {
-        exclude module: 'groovy-all'
+        exclude module: 'groovy'
         exclude module: 'junit'
     }
     testCompile "org.xbib:guice:${project.property('xbib-guice.version')}"

@@ -1,7 +1,7 @@
 package org.xbib.gradle.plugin.rpm.validation
 
 import org.gradle.api.InvalidUserDataException
-import org.xbib.gradle.plugin.rpm.ProjectSpec
+import org.xbib.gradle.plugin.test.ProjectSpec
 import org.xbib.gradle.plugin.rpm.Rpm
 
 class RpmTaskPropertiesValidatorIntegrationTest extends ProjectSpec {

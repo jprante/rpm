@@ -2,6 +2,7 @@ package org.xbib.gradle.plugin.rpm
 
 import org.junit.Before
 import org.junit.Test
+import org.xbib.gradle.plugin.test.ProjectSpec
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue

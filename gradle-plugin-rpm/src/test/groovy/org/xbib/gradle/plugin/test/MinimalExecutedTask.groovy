@@ -1,4 +1,6 @@
-package org.xbib.gradle.plugin.rpm
+package org.xbib.gradle.plugin.test
+
+import org.xbib.gradle.plugin.test.ExecutedTask
 
 class MinimalExecutedTask implements ExecutedTask {
 

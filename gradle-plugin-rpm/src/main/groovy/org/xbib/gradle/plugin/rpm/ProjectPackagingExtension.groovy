@@ -34,8 +34,8 @@ class ProjectPackagingExtension extends SystemPackagingExtension {
 
     ProjectPackagingExtension(Project project) {
         FileResolver resolver = ((ProjectInternal) project).getFileResolver()
-        Instantiator instantiator = ((ProjectInternal) project).getServices().get(Instantiator.class)
-        delegateCopySpec = new DefaultCopySpec( resolver, instantiator)
+        Instantiator instantiator = ((ProjectInternal) project).getServices().get(Instantiator)
+        delegateCopySpec = new DefaultCopySpec(resolver, instantiator)
     }
 
     /*

@@ -1,4 +1,4 @@
-package org.xbib.gradle.plugin.rpm
+package org.xbib.gradle.plugin.test
 
 import com.google.common.base.Predicate
 import org.gradle.api.logging.LogLevel
@@ -38,7 +38,7 @@ abstract class IntegrationSpec extends BaseIntegrationSpec {
 
     protected Integer daemonMaxIdleTimeInSecondsInMemorySafeMode = DEFAULT_DAEMON_MAX_IDLE_TIME_IN_SECONDS_IN_MEMORY_SAFE_MODE
 
-    private String findModuleName() {
+    String findModuleName() {
          getProjectDir().getName().replaceAll(/_\d+/, '')
     }
 
@@ -62,7 +62,7 @@ abstract class IntegrationSpec extends BaseIntegrationSpec {
         runner.handle(getProjectDir(), arguments, jvmArguments, preExecutionActions)
     }
 
-    private List<String> calculateArguments(String... args) {
+    List<String> calculateArguments(String... args) {
         List<String> arguments = []
         // Gradle will use these files name from the PWD, instead of the project directory. It's easier to just leave
         // them out and let the default find them, since we're not changing their default names.

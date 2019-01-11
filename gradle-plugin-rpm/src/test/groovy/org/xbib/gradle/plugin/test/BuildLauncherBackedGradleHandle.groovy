@@ -1,4 +1,4 @@
-package org.xbib.gradle.plugin.rpm
+package org.xbib.gradle.plugin.test
 
 import org.gradle.tooling.BuildException
 import org.gradle.tooling.BuildLauncher

@@ -1,11 +1,10 @@
-package org.xbib.gradle.plugin.rpm
+package org.xbib.gradle.plugin.test
 
 class GradleDependencyGenerator {
 
     static final String STANDARD_SUBPROJECT_BLOCK = '''\
         subprojects {
             apply plugin: 'maven-publish'
-            apply plugin: 'ivy-publish'
             apply plugin: 'java'
 
             publishing {
@@ -13,24 +12,9 @@ class GradleDependencyGenerator {
                     maven {
                         url "../mavenrepo"
                     }
-                    ivy {
-                        url "../ivyrepo"
-                        layout('pattern') {
-                            ivy '[organisation]/[module]/[revision]/[module]-[revision]-ivy.[ext]'
-                            artifact '[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]'
-                            m2compatible = true
-                        }
-                    }
                 }
                 publications {
                     maven(MavenPublication) {
-                        artifactId artifactName
-
-                        from components.java
-                    }
-                    ivy(IvyPublication) {
-                        module artifactName
-
                         from components.java
                     }
                 }
@@ -43,13 +27,11 @@ class GradleDependencyGenerator {
 
     DependencyGraph graph
     File gradleRoot
-    File ivyRepoDir
     File mavenRepoDir
 
     GradleDependencyGenerator(DependencyGraph graph, String directory = 'build/testrepogen') {
         this.graph = graph
         this.gradleRoot = new File(directory)
-        this.ivyRepoDir = new File(directory, 'ivyrepo')
         this.mavenRepoDir = new File(directory, 'mavenrepo')
         generateGradleFiles()
     }
@@ -71,33 +53,6 @@ class GradleDependencyGenerator {
     String getMavenRepositoryBlock() {
         """\
             maven { url '${getMavenRepoUrl()}' }
-        """.stripIndent()
-    }
-
-    File generateTestIvyRepo() {
-        runTasks('publishIvyPublicationToIvyRepository')
-
-        ivyRepoDir
-    }
-
-    String getIvyRepoDirPath() {
-        ivyRepoDir.absolutePath
-    }
-
-    String getIvyRepoUrl() {
-        ivyRepoDir.toURI().toURL()
-    }
-
-    String getIvyRepositoryBlock() {
-        """\
-            ivy {
-                url '${getIvyRepoUrl()}'
-                layout('pattern') {
-                    ivy '[organisation]/[module]/[revision]/[module]-[revision]-ivy.[ext]'
-                    artifact '[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]'
-                    m2compatible = true
-                }
-            }
         """.stripIndent()
     }
 
@@ -138,9 +93,7 @@ class GradleDependencyGenerator {
         """\
             group = '${node.group}'
             version = '${node.version}'
-            ext {
-                artifactName = '${node.artifact}'
-            }
+            ext { artifactName = '${node.artifact}' }
         """.stripIndent() + block.toString()
     }
 

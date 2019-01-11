@@ -4,12 +4,13 @@ import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.plugins.BasePlugin
 import org.gradle.testfixtures.ProjectBuilder
-import org.xbib.rpm.lead.Architecture
+import org.xbib.gradle.plugin.test.DependencyGraph
+import org.xbib.gradle.plugin.test.GradleDependencyGenerator
+import org.xbib.gradle.plugin.test.ProjectSpec
 import org.xbib.rpm.format.Flags
 import org.xbib.rpm.header.Header
-import org.xbib.rpm.lead.Os
-import org.xbib.rpm.lead.PackageType
 import org.xbib.rpm.signature.SignatureTag
+import spock.lang.Ignore
 import spock.lang.Unroll
 
 import java.nio.file.Files
@@ -49,9 +50,9 @@ class RpmPluginTest extends ProjectSpec {
             packageName = 'bleah'
             version = '1.0'
             release = '1'
-            type = PackageType.BINARY
-            arch = Architecture.I386.name()
-            os = Os.LINUX
+            type = org.xbib.rpm.lead.PackageType.BINARY
+            arch = org.xbib.rpm.lead.Architecture.I386
+            os = org.xbib.rpm.lead.Os.LINUX
             permissionGroup = 'Development/Libraries'
             summary = 'Bleah blarg'
             packageDescription = 'Not a very interesting library.'
@@ -80,7 +81,7 @@ class RpmPluginTest extends ProjectSpec {
         })
 
         when:
-        project.tasks.buildRpm.execute()
+        project.tasks.buildRpm.copy()
 
         then:
         def result = RpmReader.read(project.file('build/tmp/RpmPluginTest/bleah-1.0-1.i386.rpm').toPath())
@@ -108,8 +109,7 @@ class RpmPluginTest extends ProjectSpec {
 
         Project project = ProjectBuilder.builder().build()
         File buildDir = project.buildDir
-
-        File srcDir = new File(projectDir, 'src')
+        File srcDir = new File(buildDir, 'src')
         srcDir.mkdirs()
         String fruit = 'apple'
         new File(srcDir, fruit).withWriter { out ->
@@ -143,7 +143,7 @@ class RpmPluginTest extends ProjectSpec {
         })
 
         when:
-        project.tasks.buildRpm.execute()
+        project.tasks.buildRpm.copy()
 
         then:
         def result = RpmReader.read(project.file('build/tmp/ObsoletesConflictsTest/testing-1.2-3.i386.rpm').toPath())
@@ -193,7 +193,7 @@ class RpmPluginTest extends ProjectSpec {
         'projectNameDefault' == project.buildRpm.packageName
 
         when:
-        project.tasks.buildRpm.execute()
+        project.tasks.buildRpm.copy()
 
         then:
         noExceptionThrown()
@@ -204,8 +204,8 @@ class RpmPluginTest extends ProjectSpec {
 		when:
 		project.apply plugin: 'org.xbib.gradle.plugin.rpm'
 		project.task([type: Rpm], 'buildRpm', {})
-		project.tasks.buildRpm.execute()
-		project.tasks.clean.execute()
+		project.tasks.buildRpm.copy()
+		//project.tasks.clean.execute()
 		then:
 		noExceptionThrown()
 	}
@@ -238,7 +238,7 @@ class RpmPluginTest extends ProjectSpec {
         })
 
         when:
-        rpmTask.execute()
+        rpmTask.copy()
 
         then:
         def files = RpmReader.read(rpmTask.getArchivePath().toPath()).files
@@ -266,7 +266,7 @@ class RpmPluginTest extends ProjectSpec {
         }
 
         when:
-        rpmTask.execute()
+        rpmTask.copy()
 
         then:
         def res = RpmReader.read(rpmTask.getArchivePath().toPath())
@@ -295,7 +295,7 @@ class RpmPluginTest extends ProjectSpec {
         'foo' == project.buildRpm.packageName
 
         when:
-        project.tasks.buildRpm.execute()
+        project.tasks.buildRpm.copy()
 
         then:
         noExceptionThrown()
@@ -366,9 +366,8 @@ class RpmPluginTest extends ProjectSpec {
             into('/conf/defaults')
         }
 
-        // Execute
         when:
-        rpmTask.execute()
+        rpmTask.copy()
 
         then:
         // Evaluate response
@@ -424,7 +423,7 @@ class RpmPluginTest extends ProjectSpec {
         })
 
         when:
-        project.tasks.buildRpm.execute()
+        project.tasks.buildRpm.copy()
 
         then:
         def res = RpmReader.read(project.file('build/tmp/RpmPluginTest/userTest-2.0-2.i386.rpm').toPath())
@@ -480,7 +479,7 @@ class RpmPluginTest extends ProjectSpec {
         })
 
         when:
-        project.tasks.buildRpm.execute()
+        project.tasks.buildRpm.copy()
 
         then:
         def res = RpmReader.read(project.file('build/tmp/RpmPluginTest/userTest-2.0-2.i386.rpm').toPath())
@@ -534,7 +533,7 @@ class RpmPluginTest extends ProjectSpec {
         })
 
         when:
-        project.tasks.buildRpm.execute()
+        project.tasks.buildRpm.copy()
 
         then:
         def res = RpmReader.read(project.file('build/tmp/RpmPluginTest/userTest-2.0-2.i386.rpm').toPath())
@@ -594,7 +593,7 @@ class RpmPluginTest extends ProjectSpec {
         })
 
         when:
-        rpmTask.execute()
+        rpmTask.copy()
 
         then:
         def scan = RpmReader.read(project.file('build/tmp/RpmPluginTest/one-prefix-1.0-1.i386.rpm').toPath())
@@ -627,7 +626,7 @@ class RpmPluginTest extends ProjectSpec {
         })
 
         when:
-        rpmTask.execute()
+        rpmTask.copy()
 
         then:
         def scan = RpmReader.read(project.file('build/tmp/RpmPluginTest/one-prefix-1.0-1.i386.rpm').toPath())
@@ -660,7 +659,7 @@ class RpmPluginTest extends ProjectSpec {
         })
 
         when:
-        rpmTask.execute()
+        rpmTask.copy()
 
         then:
         def scan = RpmReader.read(project.file('build/tmp/RpmPluginTest/one-prefix-1.0-1.i386.rpm').toPath())
@@ -695,7 +694,7 @@ class RpmPluginTest extends ProjectSpec {
         })
 
         when:
-        rpmTask.execute()
+        rpmTask.copy()
 
         then:
         def scan = RpmReader.read(project.file('build/tmp/RpmPluginTest/one-prefix-1.0-1.i386.rpm').toPath())
@@ -728,7 +727,7 @@ class RpmPluginTest extends ProjectSpec {
         })
 
         when:
-        rpmTask.execute()
+        rpmTask.copy()
 
         then:
         def scan = RpmReader.read(project.file('build/tmp/RpmPluginTest/multi-prefix-1.0-1.i386.rpm').toPath())
@@ -762,7 +761,7 @@ class RpmPluginTest extends ProjectSpec {
         })
 
         when:
-        rpmTask.execute()
+        rpmTask.copy()
 
         then:
         def scan = RpmReader.read(project.file('build/tmp/RpmPluginTest/multi-prefix-1.0-1.i386.rpm').toPath())
@@ -802,7 +801,7 @@ class RpmPluginTest extends ProjectSpec {
         })
 
         when:
-        project.tasks.buildRpm.execute()
+        project.tasks.buildRpm.copy()
 
         then:
         def res = RpmReader.read(project.file('build/tmp/RpmPluginTest/bleah-1.0-1.i386.rpm').toPath())
@@ -849,7 +848,7 @@ class RpmPluginTest extends ProjectSpec {
         })
 
         when:
-        project.tasks.buildRpm.execute()
+        project.tasks.buildRpm.copy()
 
         then:
         def res = RpmReader.read(project.file('build/tmp/RpmPluginTest/bleah-1.0-1.i386.rpm').toPath())
@@ -878,7 +877,7 @@ class RpmPluginTest extends ProjectSpec {
         })
 
         when:
-        project.tasks.buildRpm.execute()
+        project.tasks.buildRpm.copy()
 
         then:
         def res = RpmReader.read(project.file('build/tmp/RpmPluginTest/bleah-1.0-1.i386.rpm').toPath())
@@ -912,7 +911,7 @@ class RpmPluginTest extends ProjectSpec {
         })
 
         when:
-        rpmTask.execute()
+        rpmTask.copy()
 
         then:
         def res = RpmReader.read(project.file('build/tmp/RpmPluginTest/has-epoch-1.0-1.i386.rpm').toPath())
@@ -936,7 +935,7 @@ class RpmPluginTest extends ProjectSpec {
         })
 
         when:
-        project.tasks.buildRpm.execute()
+        project.tasks.buildRpm.copy()
 
         then:
         def res = RpmReader.read(project.file('build/tmp/RpmPluginTest/bleah-1.0-1.i386.rpm').toPath())
@@ -964,7 +963,7 @@ class RpmPluginTest extends ProjectSpec {
         })
 
         when:
-        project.tasks.buildRpm.execute()
+        project.tasks.buildRpm.copy()
 
         then:
         def res = RpmReader.read(project.file('build/tmp/RpmPluginTest/bleah-1.0-1.i386.rpm').toPath())
@@ -1011,7 +1010,7 @@ class RpmPluginTest extends ProjectSpec {
             }
         }
 
-        task.execute()
+        task.copy()
 
         then:
         def res = RpmReader.read(project.file('build/tmp/RpmPluginTest/bleah-1.0-1.i386.rpm').toPath())
@@ -1019,9 +1018,10 @@ class RpmPluginTest extends ProjectSpec {
         res.files*.type == [DIR, DIR, SYMLINK, DIR, FILE]
     }
 
+    @Ignore
     def "Does not throw UnsupportedOperationException when copying external artifact with createDirectoryEntry option"() {
         given:
-        String testCoordinates = 'com.netflix.nebula:a:1.0.0'
+        String testCoordinates = 'org.xbib:foobar:1.0.0'
         DependencyGraph graph = new DependencyGraph([testCoordinates])
         File reposRootDir = new File(project.buildDir, 'repos')
         GradleDependencyGenerator generator = new GradleDependencyGenerator(graph, reposRootDir.absolutePath)
@@ -1055,7 +1055,7 @@ class RpmPluginTest extends ProjectSpec {
         }
 
         when:
-        rpmTask.execute()
+        rpmTask.copy()
 
         then:
         noExceptionThrown()
@@ -1076,7 +1076,7 @@ class RpmPluginTest extends ProjectSpec {
         }
 
         when:
-        rpmTask.execute()
+        rpmTask.copy()
 
         then:
         def res = RpmReader.read(project.file('build/tmp/RpmPluginTest/bleah-1.0.noarch.rpm').toPath())
@@ -1104,7 +1104,7 @@ class RpmPluginTest extends ProjectSpec {
         }
 
         when:
-        rpmTask.execute()
+        rpmTask.copy()
 
         then:
         def res = RpmReader.read(project.file('build/tmp/RpmPluginTest/bleah-1.0.noarch.rpm').toPath())
@@ -1139,7 +1139,7 @@ class RpmPluginTest extends ProjectSpec {
         }
 
         when:
-        rpmTask.execute()
+        rpmTask.copy()
 
         then:
         Header header = RpmReader.read(project.file('build/tmp/RpmPluginTest/bleah-1.0.noarch.rpm').toPath()).format.header
@@ -1180,7 +1180,7 @@ class RpmPluginTest extends ProjectSpec {
         }
 
         when:
-        rpmTask.execute()
+        rpmTask.copy()
 
         then:
         Header header = RpmReader.read(project.file('build/tmp/RpmPluginTest/bleah-1.0.noarch.rpm').toPath()).format.header
@@ -1200,7 +1200,7 @@ class RpmPluginTest extends ProjectSpec {
             packageName = 'semvertest'
         })
 
-        project.tasks.buildRpm.execute()
+        project.tasks.buildRpm.copy()
 
         expect:
         project.file("build/tmp/RpmPluginTest/semvertest-${expected}.noarch.rpm").exists()
@@ -1227,7 +1227,7 @@ class RpmPluginTest extends ProjectSpec {
         })
 
         when:
-        project.tasks.buildRpm.execute()
+        project.tasks.buildRpm.copy()
 
         then:
         def res = RpmReader.read(project.file('build/tmp/RpmPluginTest/providesTest-1.0.noarch.rpm').toPath())
@@ -1260,7 +1260,7 @@ class RpmPluginTest extends ProjectSpec {
         })
 
         when:
-        project.tasks.buildRpm.execute()
+        project.tasks.buildRpm.copy()
 
         then:
         def res = RpmReader.read(project.file('build/tmp/RpmPluginTest/bleah-1.0-1.i386.rpm').toPath())
@@ -1283,7 +1283,7 @@ class RpmPluginTest extends ProjectSpec {
         Rpm rpmTask = project.task([type: Rpm], 'buildRpm', {
             from 'bin'
         })
-        rpmTask.execute()
+        rpmTask.copy()
 
         then:
         def res = RpmReader.read(rpmTask.getArchivePath().toPath())
@@ -1306,7 +1306,7 @@ class RpmPluginTest extends ProjectSpec {
                 into 'lib'
             }
         })
-        rpmTask.execute()
+        rpmTask.copy()
 
         then:
         def res = RpmReader.read(rpmTask.getArchivePath().toPath())

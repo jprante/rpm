@@ -2,8 +2,6 @@ package org.xbib.gradle.plugin.rpm
 
 import spock.lang.Specification
 
-import java.nio.file.Paths
-
 class SystemPackagingExtensionTest extends Specification {
 
     SystemPackagingExtension extension = new SystemPackagingExtension()

@@ -75,13 +75,6 @@ class SystemPackagingExtension {
     @Input @Optional
     String sourcePackage
 
-    String archStr
-
-    @Input @Optional
-    void setArch(Object arch) {
-        archStr = (arch instanceof Architecture) ? arch.name() : arch.toString()
-    }
-
     @Input @Optional
     List<String> fileType
 
@@ -90,6 +83,14 @@ class SystemPackagingExtension {
 
     @Input @Optional
     Boolean addParentDirs
+
+    //String archStr
+
+    @Input @Optional
+    Architecture arch
+    //void setArch(Object arch) {
+    //    archStr = (arch instanceof Architecture) ? arch.name() : arch.toString()
+    //}
 
     @Input @Optional
     Os os

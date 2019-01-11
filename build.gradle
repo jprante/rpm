@@ -19,11 +19,6 @@ printf "Date: %s\nHost: %s\nOS: %s %s %s\nJava: %s %s %s %s\nGradle: %s Groovy: 
         System.getProperty("java.vm.name"),
         gradle.gradleVersion, GroovySystem.getVersion(), JavaVersion.current()
 
-// our RPM gradle plugin integration test looks into Gradle's " Task : " output
-if (VersionNumber.parse(gradle.gradleVersion).compareTo(VersionNumber.parse("4.8")) < 0) {
-    throw new GradleScriptException("Gradle version must be 4.8 or higher", null)
-}
-
 ext {
     user = 'xbib'
     projectName = 'rpm'

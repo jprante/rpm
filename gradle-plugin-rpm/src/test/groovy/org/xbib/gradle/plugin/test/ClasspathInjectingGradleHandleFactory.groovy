@@ -1,4 +1,4 @@
-package org.xbib.gradle.plugin.rpm;
+package org.xbib.gradle.plugin.test;
 
 import com.google.common.base.Predicate
 import org.gradle.util.GFileUtils

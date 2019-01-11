@@ -15,7 +15,6 @@ import org.gradle.api.tasks.WorkResults
 import org.gradle.internal.UncheckedException
 import org.xbib.gradle.plugin.rpm.validation.RpmTaskPropertiesValidator
 import org.xbib.rpm.RpmBuilder
-import org.xbib.rpm.lead.Architecture
 import org.xbib.rpm.header.HeaderTag
 import org.xbib.rpm.payload.Directive
 
@@ -164,7 +163,7 @@ class RpmCopyAction implements CopyAction {
         builder = new RpmBuilder()
         builder.setPackage task.packageName, task.version, task.release, task.epoch
         builder.setType task.type
-        builder.setPlatform Architecture.valueOf(task.archStr.toUpperCase()), task.os
+        builder.setPlatform task.arch, task.os
         builder.setGroup task.packageGroup
         builder.setBuildHost task.buildHost
         builder.setSummary task.summary
@@ -266,19 +265,20 @@ class RpmCopyAction implements CopyAction {
     }
 
     protected void end() {
-        Path path = task.getArchivePath().toPath()
+        Path path = task.archiveFile.get().asFile.toPath()
+        Files.createDirectories(path.parent)
         Files.newByteChannel(path, StandardOpenOption.WRITE, StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING).withCloseable { ch ->
             builder.build(ch)
         }
-        logger.info 'Created RPM archive {}', path
+        logger.info 'created RPM archive {}', path
     }
 
     String standardScriptDefines() {
         includeStandardDefines ?
             String.format(" RPM_ARCH=%s \n RPM_OS=%s \n RPM_PACKAGE_NAME=%s \n RPM_PACKAGE_VERSION=%s \n RPM_PACKAGE_RELEASE=%s \n\n",
-                task.getArchString(),
-                task.os?.toString()?.toLowerCase() ?: '',
+                task.arch?.toString()?.toLowerCase()?:'',
+                task.os?.toString()?.toLowerCase()?: '',
                 task.getPackageName(),
                 task.getVersion(),
                 task.getRelease()) : null

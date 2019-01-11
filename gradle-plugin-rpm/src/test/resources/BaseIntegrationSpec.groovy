@@ -1,4 +1,3 @@
-package org.xbib.gradle.plugin.rpm
 
 import org.junit.Rule
 import org.junit.rules.TestName

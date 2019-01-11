@@ -444,12 +444,14 @@ public class RpmBuilder {
      * @throws IllegalArgumentException if passed in character sequence contains dashes.
      */
     private void checkVariableContainsIllegalChars(char[] illegalChars, CharSequence variable, String variableName) {
-        for (int i = 0; i < variable.length(); i++) {
-            char currChar = variable.charAt(i);
-            for (char illegalChar : illegalChars) {
-                if (currChar == illegalChar) {
-                    throw new IllegalArgumentException(variableName + " with value: '" + variable +
-                            "' contains illegal character " + currChar);
+        if (variable != null) {
+            for (int i = 0; i < variable.length(); i++) {
+                char currChar = variable.charAt(i);
+                for (char illegalChar : illegalChars) {
+                    if (currChar == illegalChar) {
+                        throw new IllegalArgumentException(variableName + " with value: '" + variable +
+                                "' contains illegal character " + currChar);
+                    }
                 }
             }
         }

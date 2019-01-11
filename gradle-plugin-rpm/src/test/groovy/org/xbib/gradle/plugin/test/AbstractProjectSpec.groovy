@@ -1,4 +1,4 @@
-package org.xbib.gradle.plugin.rpm
+package org.xbib.gradle.plugin.test
 
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
@@ -21,7 +21,7 @@ abstract class AbstractProjectSpec extends Specification {
     MultiProjectHelper helper
 
     void setup() {
-        ourProjectDir = new File("build/nebulatest/${this.class.canonicalName}/${testName.methodName.replaceAll(/\W+/, '-')}").absoluteFile
+        ourProjectDir = new File("build/xbibtest/${this.class.canonicalName}/${testName.methodName.replaceAll(/\W+/, '-')}").absoluteFile
         if (ourProjectDir.exists()) {
             ourProjectDir.deleteDir()
         }
