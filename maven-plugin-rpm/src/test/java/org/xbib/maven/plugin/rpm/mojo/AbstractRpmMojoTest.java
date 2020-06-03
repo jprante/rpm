@@ -82,7 +82,6 @@ public class AbstractRpmMojoTest {
                 Paths.get(testOutputPath, "mojo/AbstractRpmMojo-template-expected");
         Path actualScriptFile =
                 Paths.get(testOutputPath, "mojo/AbstractRpmMojo-template-actual");
-        //assertFalse(Files.exists(actualScriptFile));
         renderer.render(templateScriptFile, actualScriptFile);
         assertTrue(Files.exists(actualScriptFile));
         char[] buff = new char[1024];
@@ -166,6 +165,6 @@ public class AbstractRpmMojoTest {
         mojo.setBuildPath(String.format("%s%sfiles", testOutputPath, File.separator));
         mojo.scanMasterFiles();
         Set<String> masterFiles = mojo.getMasterFiles();
-        assertEquals(64, masterFiles.size());
+        assertEquals(63, masterFiles.size());
     }
 }
