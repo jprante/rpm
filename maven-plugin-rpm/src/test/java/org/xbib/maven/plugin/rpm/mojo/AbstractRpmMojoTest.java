@@ -165,6 +165,6 @@ public class AbstractRpmMojoTest {
         mojo.setBuildPath(String.format("%s%sfiles", testOutputPath, File.separator));
         mojo.scanMasterFiles();
         Set<String> masterFiles = mojo.getMasterFiles();
-        assertEquals(63, masterFiles.size());
+        assertEquals(62, masterFiles.size());
     }
 }
