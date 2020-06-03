@@ -3,8 +3,8 @@ package org.xbib.maven.plugin.rpm.mojo;
 import org.apache.maven.model.Build;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.xbib.maven.plugin.rpm.RpmPackage;
 import org.xbib.maven.plugin.rpm.RpmPackageRule;
 
@@ -21,7 +21,7 @@ public class ListFilesRpmMojoTest {
     private ListFilesRpmMojo mojo;
     private RpmPackageRule packageRule;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         this.testOutputPath = System.getProperty("project.build.testOutputDirectory");
         Build projectBuild = new Build();

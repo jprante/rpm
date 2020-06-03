@@ -1,37 +1,41 @@
 plugins {
     id 'java-gradle-plugin'
-    id 'com.gradle.plugin-publish' version '0.10.0'
+    id 'com.gradle.plugin-publish' version '0.11.0'
 }
 
 group = 'org.xbib.gradle.plugin'
 
 apply plugin: 'groovy'
-apply plugin: 'maven'
-apply plugin: 'signing'
+apply plugin: 'java-gradle-plugin'
 apply plugin: 'com.gradle.plugin-publish'
 
 dependencies {
-    compile gradleApi()
-    compile project(':rpm-core')
-    compileOnly "org.codehaus.groovy:groovy:${project.property('groovy.version')}"
-    testCompile "junit:junit:${project.property('junit.version')}"
-    testCompile("org.spockframework:spock-core:${project.property('spock-core.version')}") {
-        exclude module: 'groovy'
-        exclude module: 'junit'
-    }
-    testCompile "org.xbib:guice:${project.property('xbib-guice.version')}"
-
+    api gradleApi()
+    api project(':rpm-core')
+    testImplementation gradleTestKit()
 }
 
 compileGroovy {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
 }
 
-test {
-    testLogging {
-        showStandardStreams = true
-        exceptionFormat = 'full'
+compileTestGroovy {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+validatePlugins {
+    // disable warning as failures because gradle plugin does not recognize @Delegate tag
+  failOnWarning = false
+}
+
+gradlePlugin {
+    plugins {
+        rpmPlugin {
+            id = 'org.xbib.gradle.plugin.rpm'
+            implementationClass = 'org.xbib.gradle.plugin.RpmPlugin'
+        }
     }
 }
 
@@ -43,8 +47,8 @@ if (project.hasProperty('gradle.publish.key')) {
             rpmPlugin {
                 id = 'org.xbib.gradle.plugin.rpm'
                 version = project.version
-                description = projectDescription
-                displayName = projectDescription
+                description = rootProject.ext.description
+                displayName = rootProject.ext.description
                 tags = ['gradle', 'plugin', 'rpm']
             }
         }

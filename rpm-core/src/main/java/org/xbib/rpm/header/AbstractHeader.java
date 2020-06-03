@@ -7,11 +7,10 @@ import org.xbib.rpm.header.entry.Int32SpecEntry;
 import org.xbib.rpm.header.entry.Int64SpecEntry;
 import org.xbib.rpm.header.entry.Int8SpecEntry;
 import org.xbib.rpm.header.entry.SpecEntry;
-import org.xbib.rpm.header.entry.StringArraySpecEntry;
+import org.xbib.rpm.header.entry.StringListSpecEntry;
 import org.xbib.rpm.header.entry.StringSpecEntry;
 import org.xbib.rpm.io.ChannelWrapper;
 import org.xbib.rpm.lead.Lead;
-
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
@@ -98,8 +97,8 @@ public abstract class AbstractHeader {
         data.flip();
         int pad = pad() ? ((data.remaining() + 7) & ~7) - data.remaining() : 0;
         header.putInt(data.remaining());
-        ChannelWrapper.empty(out, (ByteBuffer) header.flip());
-        ChannelWrapper.empty(out, (ByteBuffer) index.flip());
+        ChannelWrapper.empty(out, header.flip());
+        ChannelWrapper.empty(out, index.flip());
         ChannelWrapper.empty(out, data);
         return pad;
     }
@@ -122,14 +121,22 @@ public abstract class AbstractHeader {
 
     @SuppressWarnings("unchecked")
     public void createEntry(EntryType entryType, CharSequence value) {
-        SpecEntry<String[]> entry = (SpecEntry<String[]>) makeEntry(entryType, 1);
-        entry.setValues(new String[]{value.toString()});
+        if (value == null) {
+            throw new IllegalArgumentException("unable to accept null value for entry " +
+                    entryType.getName() + " " + entryType.getType());
+        }
+        SpecEntry<StringList> entry = (SpecEntry<StringList>) makeEntry(entryType, 1);
+        entry.setValues(StringList.of(value.toString()));
     }
 
     @SuppressWarnings("unchecked")
     public void createEntry(EntryType entryType, Integer value) {
-        SpecEntry<Integer[]> entry = (SpecEntry<Integer[]>) makeEntry(entryType, 1);
-        entry.setValues(new Integer[]{value});
+        if (value == null) {
+            throw new IllegalArgumentException("unable to accept null value for entry " +
+                    entryType.getName() + " " + entryType.getType());
+        }
+        SpecEntry<IntegerList> entry = (SpecEntry<IntegerList>) makeEntry(entryType, 1);
+        entry.setValues(IntegerList.of(value));
     }
 
     public void writePending(SeekableByteChannel channel) {
@@ -138,7 +145,7 @@ public abstract class AbstractHeader {
                 ByteBuffer data = ByteBuffer.allocate(entry.getKey().size());
                 entry.getKey().write(data);
                 channel.position(Lead.LEAD_SIZE + HEADER_SIZE + count() * ENTRY_SIZE + entry.getValue());
-                ChannelWrapper.empty(channel, (ByteBuffer) data.flip());
+                ChannelWrapper.empty(channel, data.flip());
             } catch (Exception e) {
                 throw new RuntimeException("Error writing pending entry '" + entry.getKey().getEntryType() + "'.", e);
             }
@@ -155,9 +162,16 @@ public abstract class AbstractHeader {
      * @throws ClassCastException - if the type of values is not compatible with the type
      *                            required by tag
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "raw"})
     public <T> void createEntry(EntryType entryType, T values) {
-        SpecEntry<T> entry = (SpecEntry<T>) makeEntry(entryType, values.getClass().isArray() ? Array.getLength(values) : 1);
+        int len = 1;
+        if (values.getClass().isArray()) {
+            len = Array.getLength(values);
+        }
+        if (Collection.class.isAssignableFrom(values.getClass())) {
+            len = ((Collection) values).size();
+        }
+        SpecEntry<T> entry = (SpecEntry<T>) makeEntry(entryType, len);
         if (entryType instanceof HeaderTag) {
             Class<?> cl = ((HeaderTag) entryType).getTypeClass();
             if (cl.isAssignableFrom(values.getClass())) {
@@ -181,21 +195,29 @@ public abstract class AbstractHeader {
      * @throws ClassCastException - if the type of values is not compatible with the
      *                            type required by tag
      */
-    @SuppressWarnings({"unchecked"})
+    @SuppressWarnings({"unchecked", "raw"})
     public <T> void addOrAppendEntry(EntryType entryType, T values) {
         SpecEntry<T> entry = (SpecEntry<T>) addOrAppendEntry(entryType,
                 values.getClass().isArray() ? Array.getLength(values) : 1);
         T existingValues = entry.getValues();
         if (existingValues == null) {
             entry.setValues(values);
-        } else {
-            int oldSize = java.lang.reflect.Array.getLength(existingValues);
+        } else if (existingValues instanceof Collection) {
+            Collection collection = (Collection) existingValues;
+            if (values instanceof Collection) {
+                Collection valuesCollection = (Collection) values;
+                collection.addAll(valuesCollection);
+            } else {
+                collection.add(values);
+            }
+            entry.setValues((T) collection);
+            /*int oldSize = java.lang.reflect.Array.getLength(existingValues);
             int newSize = values.getClass().isArray() ? Array.getLength(values) : 1;
             Class<?> elementType = existingValues.getClass().getComponentType();
             T newValues = (T) Array.newInstance(elementType, oldSize + newSize);
             System.arraycopy(existingValues, 0, newValues, 0, oldSize);
             System.arraycopy(values, 0, newValues, oldSize, newSize);
-            entry.setValues(newValues);
+            entry.setValues(newValues);*/
         }
     }
 
@@ -236,9 +258,8 @@ public abstract class AbstractHeader {
      * This method must be invoked before mapping the index or data sections.
      *
      * @return a buffer containing the header
-     * @throws IOException there was an IO error
      */
-    protected ByteBuffer getHeader() throws IOException {
+    protected ByteBuffer getHeader() {
         ByteBuffer buffer = ByteBuffer.allocate(HEADER_SIZE);
         buffer.putInt(MAGIC_WORD);
         buffer.putInt(0);
@@ -266,9 +287,8 @@ public abstract class AbstractHeader {
      *
      * @param index ByteBuffer of the index
      * @return the total number of bytes written to the data section of the file.
-     * @throws IOException there was an IO error
      */
-    private ByteBuffer getData(final ByteBuffer index) throws IOException {
+    private ByteBuffer getData(final ByteBuffer index) {
         int offset = 0;
         List<ByteBuffer> buffers = new ArrayList<>();
         Iterator<Integer> i = entries.keySet().iterator();
@@ -300,6 +320,9 @@ public abstract class AbstractHeader {
         }
         offset += shift;
         int size = entry.size();
+        if (size == 0) {
+            throw new IllegalStateException("entry size is 0");
+        }
         ByteBuffer buffer = ByteBuffer.allocate(size);
         entry.index(index, offset);
         if (entry.ready()) {
@@ -358,8 +381,8 @@ public abstract class AbstractHeader {
                 return new StringSpecEntry();
             case EntryType.BIN_ENTRY:
                 return new BinSpecEntry();
-            case EntryType.STRING_ARRAY_ENTRY:
-                return new StringArraySpecEntry();
+            case EntryType.STRING_LIST_ENTRY:
+                return new StringListSpecEntry();
             case EntryType.I18NSTRING_ENTRY:
                 return new I18NStringSpecEntry();
             default:

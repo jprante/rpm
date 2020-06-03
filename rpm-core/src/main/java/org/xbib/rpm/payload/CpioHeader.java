@@ -23,14 +23,6 @@ import java.util.Date;
  */
 public class CpioHeader {
 
-    public static final int DEFAULT_FILE_PERMISSION = 0644;
-
-    public static final int DEFAULT_DIRECTORY_PERMISSION = 0755;
-
-    public static final String DEFAULT_USERNAME = "root";
-
-    public static final String DEFAULT_GROUP = "root";
-
     public static final int FIFO = 1;
 
     public static final int CDEV = 2;
@@ -51,21 +43,17 @@ public class CpioHeader {
 
     private static final String TRAILER = "TRAILER!!!";
 
-    private Charset charset = StandardCharsets.UTF_8;
+    private final Charset charset = StandardCharsets.UTF_8;
 
     private int inode;
 
     protected int type;
 
-    protected int permissions = DEFAULT_FILE_PERMISSION;
+    protected int permissions = 0644;
 
     private int uid;
 
-    private String uname;
-
     private int gid;
-
-    private String gname;
 
     private int nlink = 1;
 
@@ -171,48 +159,48 @@ public class CpioHeader {
         this.inode = inode;
     }
 
-    public String getName() {
-        return name;
-    }
-
     public void setName(String name) {
         this.name = name;
     }
 
-    public int getFlags() {
-        return flags;
+    public String getName() {
+        return name;
     }
 
     public void setFlags(int flags) {
         this.flags = flags;
     }
 
-    public int getVerifyFlags() {
-        return verifyFlags;
+    public int getFlags() {
+        return flags;
     }
 
     public void setVerifyFlags(int verifyFlags) {
         this.verifyFlags = verifyFlags;
     }
 
+    public int getVerifyFlags() {
+        return verifyFlags;
+    }
+
     public int getMode() {
         return (type << 12) | (permissions & 07777);
     }
 
-    public String getUname() {
-        return this.uname;
+    public void setUid(int uid) {
+        this.uid = uid;
     }
 
-    public void setUname(String uname) {
-        this.uname = uname;
+    public int getUid() {
+        return uid;
     }
 
-    public String getGname() {
-        return this.gname;
+    public void setGid(int gid) {
+        this.gid = gid;
     }
 
-    public void setGname(String gname) {
-        this.gname = gname;
+    public int getGid() {
+        return gid;
     }
 
     /**
@@ -358,8 +346,6 @@ public class CpioHeader {
                 "Type: " + type + "\n" +
                 "UID: " + uid + "\n" +
                 "GID: " + gid + "\n" +
-                "UserName: " + uname + "\n" +
-                "GroupName: " + gname + "\n" +
                 "Nlink: " + nlink + "\n" +
                 "MTime: " + new Date(mtime) + "\n" +
                 "FileSize: " + filesize + "\n" +

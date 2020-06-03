@@ -1,21 +1,21 @@
 package org.xbib.maven.plugin.rpm;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.apache.maven.model.Build;
 import org.apache.maven.project.MavenProject;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.xbib.maven.plugin.rpm.mojo.PackageRpmMojo;
 import org.xbib.rpm.exception.RpmException;
 import org.xbib.rpm.exception.UnknownArchitectureException;
 import org.xbib.rpm.exception.UnknownOperatingSystemException;
 import org.xbib.rpm.lead.Architecture;
 import org.xbib.rpm.lead.Os;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -34,7 +34,7 @@ public class RpmPackageTest {
 
     private MavenProject project;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         testOutputPath = System.getProperty("project.build.testOutputDirectory");
         Build projectBuild = new Build();
@@ -119,42 +119,42 @@ public class RpmPackageTest {
 
     @Test
     public void urlAccessors() {
-        assertEquals(null, rpmPackage.getUrl());
+        assertNull(rpmPackage.getUrl());
         rpmPackage.setUrl("http://www.example.com/foo");
         assertEquals("http://www.example.com/foo", rpmPackage.getUrl());
     }
 
     @Test
     public void groupAccessors() {
-        assertEquals(null, rpmPackage.getGroup());
+        assertNull(rpmPackage.getGroup());
         rpmPackage.setGroup("group/subgroup");
         assertEquals("group/subgroup", rpmPackage.getGroup());
     }
 
     @Test
     public void licenseAccessors() {
-        assertEquals(null, rpmPackage.getLicense());
+        assertNull(rpmPackage.getLicense());
         rpmPackage.setLicense("license");
         assertEquals("license", rpmPackage.getLicense());
     }
 
     @Test
     public void summaryAccessors() {
-        assertEquals(null, rpmPackage.getSummary());
+        assertNull(rpmPackage.getSummary());
         rpmPackage.setSummary("summary");
         assertEquals("summary", rpmPackage.getSummary());
     }
 
     @Test
     public void descriptionAccessors() {
-        assertEquals(null, rpmPackage.getDescription());
+        assertNull(rpmPackage.getDescription());
         rpmPackage.setDescription("description");
         assertEquals("description", rpmPackage.getDescription());
     }
 
     @Test
     public void distributionAccessors() {
-        assertEquals(null, rpmPackage.getDistribution());
+        assertNull(rpmPackage.getDistribution());
         rpmPackage.setDistribution("distribution");
         assertEquals("distribution", rpmPackage.getDistribution());
     }
@@ -166,19 +166,22 @@ public class RpmPackageTest {
         assertEquals(Architecture.SPARC, rpmPackage.getArchitecture());
     }
 
-    @Test(expected = UnknownArchitectureException.class)
-    public void architectureInvalidException() throws UnknownArchitectureException {
-        rpmPackage.setArchitecture("NONEXISTENT");
+    @Test
+    public void architectureInvalidException() {
+        Assertions.assertThrows(UnknownArchitectureException.class, () ->
+                rpmPackage.setArchitecture("NONEXISTENT"));
     }
 
-    @Test(expected = UnknownArchitectureException.class)
-    public void architectureBlankException() throws UnknownArchitectureException {
-        rpmPackage.setArchitecture("");
+    @Test
+    public void architectureBlankException() {
+        Assertions.assertThrows(UnknownArchitectureException.class, () ->
+                rpmPackage.setArchitecture(""));
     }
 
-    @Test(expected = UnknownArchitectureException.class)
-    public void architectureNullException() throws UnknownArchitectureException {
-        rpmPackage.setArchitecture(null);
+    @Test
+    public void architectureNullException() {
+        Assertions.assertThrows(UnknownArchitectureException.class, () ->
+                rpmPackage.setArchitecture(null));
     }
 
     @Test
@@ -188,19 +191,22 @@ public class RpmPackageTest {
         assertEquals(Os.LINUX390, rpmPackage.getOperatingSystem());
     }
 
-    @Test(expected = UnknownOperatingSystemException.class)
-    public void operatingSystemInvalidException() throws UnknownOperatingSystemException {
-        rpmPackage.setOperatingSystem("NONEXISTENT");
+    @Test
+    public void operatingSystemInvalidException() {
+        Assertions.assertThrows(UnknownOperatingSystemException.class, () ->
+                rpmPackage.setOperatingSystem("NONEXISTENT"));
     }
 
-    @Test(expected = UnknownOperatingSystemException.class)
-    public void operatingSystemBlankException() throws UnknownOperatingSystemException {
-        rpmPackage.setOperatingSystem("");
+    @Test
+    public void operatingSystemBlankException() {
+        Assertions.assertThrows(UnknownOperatingSystemException.class, () ->
+                rpmPackage.setOperatingSystem(""));
     }
 
-    @Test(expected = UnknownOperatingSystemException.class)
-    public void operatingSystemNullException() throws UnknownOperatingSystemException {
-        rpmPackage.setOperatingSystem(null);
+    @Test
+    public void operatingSystemNullException() {
+        Assertions.assertThrows(UnknownOperatingSystemException.class, () ->
+                rpmPackage.setOperatingSystem(null));
     }
 
     @Test
@@ -212,21 +218,21 @@ public class RpmPackageTest {
 
     @Test
     public void packagerAccessors() {
-        assertEquals(null, rpmPackage.getPackager());
+        assertNull(rpmPackage.getPackager());
         rpmPackage.setPackager("packager");
         assertEquals("packager", rpmPackage.getPackager());
     }
 
     @Test
     public void attachAccessors() {
-        assertEquals(true, rpmPackage.isAttach());
+        assertTrue(rpmPackage.isAttach());
         rpmPackage.setAttach(false);
-        assertEquals(false, rpmPackage.isAttach());
+        assertFalse(rpmPackage.isAttach());
     }
 
     @Test
     public void classifierAccessors() {
-        assertEquals(null, rpmPackage.getClassifier());
+        assertNull(rpmPackage.getClassifier());
         rpmPackage.setClassifier("classifier");
         assertEquals("classifier", rpmPackage.getClassifier());
     }
@@ -236,10 +242,8 @@ public class RpmPackageTest {
         List<RpmPackageRule> rules = new ArrayList<>();
         rules.add(new RpmPackageRule());
         rules.add(new RpmPackageRule());
-
         rpmPackage.setRules(rules);
         assertEquals(rules, rpmPackage.getRules());
-
         rpmPackage.setRules(null);
         assertNull(rpmPackage.getRules());
     }
@@ -247,47 +251,40 @@ public class RpmPackageTest {
     @Test
     public void eventHookAccessors() {
         Path scriptFile = Paths.get("samplescript.sh");
-
-        // pre transaction
-        assertEquals(null, rpmPackage.getPreTransactionScriptPath());
+        assertNull(rpmPackage.getPreTransactionScriptPath());
         rpmPackage.setPreTransactionScriptPath(scriptFile);
         assertEquals(scriptFile, rpmPackage.getPreTransactionScriptPath());
-
-        assertEquals(null, rpmPackage.getPreTransactionProgram());
+        assertNull(rpmPackage.getPreTransactionProgram());
         rpmPackage.setPreTransactionProgram("/bin/sh");
         assertEquals("/bin/sh", rpmPackage.getPreTransactionProgram());
-
-
-        // pre install
-        assertEquals(null, rpmPackage.getPreInstallScriptPath());
+        assertNull(rpmPackage.getPreInstallScriptPath());
         rpmPackage.setPreInstallScriptPath(scriptFile);
         assertEquals(scriptFile, rpmPackage.getPreInstallScriptPath());
-
-        assertEquals(null, rpmPackage.getPreInstallProgram());
+        assertNull(rpmPackage.getPreInstallProgram());
         rpmPackage.setPreInstallProgram("/bin/sh");
         assertEquals("/bin/sh", rpmPackage.getPreInstallProgram());
-        assertEquals(null, rpmPackage.getPostInstallScriptPath());
+        assertNull(rpmPackage.getPostInstallScriptPath());
         rpmPackage.setPostInstallScriptPath(scriptFile);
         assertEquals(scriptFile, rpmPackage.getPostInstallScriptPath());
-        assertEquals(null, rpmPackage.getPostInstallProgram());
+        assertNull(rpmPackage.getPostInstallProgram());
         rpmPackage.setPostInstallProgram("/bin/sh");
         assertEquals("/bin/sh", rpmPackage.getPostInstallProgram());
-        assertEquals(null, rpmPackage.getPreUninstallScriptPath());
+        assertNull(rpmPackage.getPreUninstallScriptPath());
         rpmPackage.setPreUninstallScriptPath(scriptFile);
         assertEquals(scriptFile, rpmPackage.getPreUninstallScriptPath());
-        assertEquals(null, rpmPackage.getPreUninstallProgram());
+        assertNull(rpmPackage.getPreUninstallProgram());
         rpmPackage.setPreUninstallProgram("/bin/sh");
         assertEquals("/bin/sh", rpmPackage.getPreUninstallProgram());
-        assertEquals(null, rpmPackage.getPostUninstallScriptPath());
+        assertNull(rpmPackage.getPostUninstallScriptPath());
         rpmPackage.setPostUninstallScriptPath(scriptFile);
         assertEquals(scriptFile, rpmPackage.getPostUninstallScriptPath());
-        assertEquals(null, rpmPackage.getPostUninstallProgram());
+        assertNull(rpmPackage.getPostUninstallProgram());
         rpmPackage.setPostUninstallProgram("/bin/sh");
         assertEquals("/bin/sh", rpmPackage.getPostUninstallProgram());
-        assertEquals(null, rpmPackage.getPostTransactionScriptPath());
+        assertNull(rpmPackage.getPostTransactionScriptPath());
         rpmPackage.setPostTransactionScriptPath(scriptFile);
         assertEquals(scriptFile, rpmPackage.getPostTransactionScriptPath());
-        assertEquals(null, rpmPackage.getPostTransactionProgram());
+        assertNull(rpmPackage.getPostTransactionProgram());
         rpmPackage.setPostTransactionProgram("/bin/sh");
         assertEquals("/bin/sh", rpmPackage.getPostTransactionProgram());
     }
@@ -302,13 +299,13 @@ public class RpmPackageTest {
 
     @Test
     public void signingKeyAccessors() {
-        assertEquals(null, rpmPackage.getSigningKey());
+        assertNull(rpmPackage.getSigningKey());
         rpmPackage.setSigningKey("key");
         assertEquals("key", rpmPackage.getSigningKey());
-        assertEquals(null, rpmPackage.getSigningKeyId());
+        assertNull(rpmPackage.getSigningKeyId());
         rpmPackage.setSigningKeyId(0L);
-        assertEquals(new Long(0L), rpmPackage.getSigningKeyId());
-        assertEquals(null, rpmPackage.getSigningKeyPassPhrase());
+        assertEquals(Long.valueOf(0L), rpmPackage.getSigningKeyId());
+        assertNull(rpmPackage.getSigningKeyPassPhrase());
         rpmPackage.setSigningKeyPassPhrase("passphrase");
         assertEquals("passphrase", rpmPackage.getSigningKeyPassPhrase());
     }
@@ -371,7 +368,7 @@ public class RpmPackageTest {
         rpmPackage.setPostTransactionProgram("/bin/sh");
         rpmPackage.build();
         String rpmFileName = String.format("%s%s%s", testOutputPath, File.separator, rpmPackage.getFinalName());
-        assertEquals(true, new File(rpmFileName).exists());
+        assertTrue(new File(rpmFileName).exists());
     }
 
     @Test
@@ -379,7 +376,7 @@ public class RpmPackageTest {
         rpmPackage.setName("buildSecondaryAttachment");
         rpmPackage.build();
         String rpmFileName = String.format("%s%s%s", testOutputPath, File.separator, rpmPackage.getFinalName());
-        assertEquals(true, new File(rpmFileName).exists());
+        assertTrue(new File(rpmFileName).exists());
     }
 
     @Test
@@ -387,7 +384,7 @@ public class RpmPackageTest {
         rpmPackage.setVersion("2.0");
         rpmPackage.build();
         String rpmFileName = String.format("%s%s%s", testOutputPath, File.separator, rpmPackage.getFinalName());
-        assertEquals(true, new File(rpmFileName).exists());
+        assertTrue(new File(rpmFileName).exists());
     }
 
     @Test
@@ -396,7 +393,7 @@ public class RpmPackageTest {
         rpmPackage.setVersion("2.0");
         rpmPackage.build();
         String rpmFileName = String.format("%s%s%s", testOutputPath, File.separator, rpmPackage.getFinalName());
-        assertEquals(true, new File(rpmFileName).exists());
+        assertTrue(new File(rpmFileName).exists());
     }
 
     @Test
@@ -405,6 +402,6 @@ public class RpmPackageTest {
         rpmPackage.setAttach(false);
         rpmPackage.build();
         String rpmFileName = String.format("%s%s%s", testOutputPath, File.separator, rpmPackage.getFinalName());
-        assertEquals(true, new File(rpmFileName).exists());
+        assertTrue(new File(rpmFileName).exists());
     }
 }

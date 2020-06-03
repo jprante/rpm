@@ -1,16 +1,15 @@
 package org.xbib.maven.plugin.rpm.mojo;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.apache.maven.model.Build;
 import org.apache.maven.model.License;
 import org.apache.maven.project.MavenProject;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.xbib.maven.plugin.rpm.MockMojo;
 import org.xbib.maven.plugin.rpm.RpmPackage;
 import org.xbib.maven.plugin.rpm.RpmScriptTemplateRenderer;
@@ -36,7 +35,7 @@ public class AbstractRpmMojoTest {
     private MockMojo mojo;
     private MavenProject project;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         testOutputPath = System.getProperty("project.build.testOutputDirectory");
         Build projectBuild = new Build();

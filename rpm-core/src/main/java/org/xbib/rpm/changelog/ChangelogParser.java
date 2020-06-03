@@ -10,7 +10,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import java.io.Reader;
+import java.nio.charset.Charset;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -36,10 +37,10 @@ public class ChangelogParser {
      * @throws DateTimeParseException  if date could not be parsed
      * @throws ChangelogParseException if any of the rules of a Changelog is violated by the input
      */
-    public List<ChangelogEntry> parse(String[] lines) throws DateTimeParseException, ChangelogParseException {
+    public List<ChangelogEntry> parse(List<String> lines) throws DateTimeParseException, ChangelogParseException {
         final int timeLen = 15;
         List<ChangelogEntry> result = new ArrayList<>();
-        if (lines.length == 0) {
+        if (lines.size() == 0) {
             return result;
         }
         ParsingState state = ParsingState.NEW;
@@ -48,14 +49,14 @@ public class ChangelogParser {
         String restOfLine = null;
         StringBuilder descr = new StringBuilder();
         int index = 0;
-        String line = lines[index];
+        String line = lines.get(index);
         lineloop:
         while (true) {
             switch (state) {
                 case NEW:
                     if (line.startsWith("#")) {
-                        if (++index < lines.length) {
-                            line = lines[index];
+                        if (++index < lines.size()) {
+                            line = lines.get(index);
                             continue;
                         } else {
                             return result;
@@ -93,8 +94,8 @@ public class ChangelogParser {
                     break;
                 case TEXT:
                     index++;
-                    if (index < lines.length) {
-                        line = lines[index];
+                    if (index < lines.size()) {
+                        line = lines.get(index);
                         if (line.startsWith("*")) {
                             if (descr.length() > 1) {
                                 entry.setDescription(descr.toString().substring(0, descr.length() - 1));
@@ -127,22 +128,27 @@ public class ChangelogParser {
     }
 
     /**
-     * @param stream stream read from the Changelog file
+     * @param stream  stream read from the Changelog file
+     * @param charset the charset of the stream
      * @return a List of ChangeLogEntry objects
      * @throws IOException             if the input stream cannot be read
      * @throws ChangelogParseException if any of the rules of a Changelog is
      *                                 violated by the input
      */
-    public List<ChangelogEntry> parse(InputStream stream) throws IOException, ChangelogParseException {
+    public List<ChangelogEntry> parse(InputStream stream, Charset charset) throws IOException, ChangelogParseException {
+        return parse(new InputStreamReader(stream, charset));
+    }
+
+    public List<ChangelogEntry> parse(Reader reader) throws IOException, ChangelogParseException {
         String line;
         List<String> lines = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-            while ((line = reader.readLine()) != null) {
+        try (BufferedReader bufferedReader = new BufferedReader(reader)) {
+            while ((line = bufferedReader.readLine()) != null) {
                 if (!line.startsWith("#")) {
                     lines.add(line);
                 }
             }
         }
-        return parse(lines.toArray(new String[0]));
+        return parse(lines);
     }
 }

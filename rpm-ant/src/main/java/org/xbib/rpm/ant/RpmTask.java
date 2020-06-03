@@ -30,6 +30,7 @@ import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 
@@ -78,31 +79,31 @@ public class RpmTask extends Task {
 
     private Path destination;
 
-    private List<ArchiveFileSet> filesets = new ArrayList<>();
+    private final List<ArchiveFileSet> filesets = new ArrayList<>();
 
-    private List<EmptyDir> emptyDirs = new ArrayList<>();
+    private final List<EmptyDir> emptyDirs = new ArrayList<>();
 
-    private List<Ghost> ghosts = new ArrayList<>();
+    private final List<Ghost> ghosts = new ArrayList<>();
 
-    private List<Link> links = new ArrayList<>();
+    private final List<Link> links = new ArrayList<>();
 
     List<Depends> depends = new ArrayList<>();
 
-    private List<Provides> moreProvides = new ArrayList<>();
+    private final List<Provides> moreProvides = new ArrayList<>();
 
-    private List<Conflicts> conflicts = new ArrayList<>();
+    private final List<Conflicts> conflicts = new ArrayList<>();
 
-    private List<Obsoletes> obsoletes = new ArrayList<>();
+    private final List<Obsoletes> obsoletes = new ArrayList<>();
 
-    private List<TriggerPreIn> triggersPreIn = new ArrayList<>();
+    private final List<TriggerPreIn> triggersPreIn = new ArrayList<>();
 
-    private List<TriggerIn> triggersIn = new ArrayList<>();
+    private final List<TriggerIn> triggersIn = new ArrayList<>();
 
-    private List<TriggerUn> triggersUn = new ArrayList<>();
+    private final List<TriggerUn> triggersUn = new ArrayList<>();
 
-    private List<TriggerPostUn> triggersPostUn = new ArrayList<>();
+    private final List<TriggerPostUn> triggersPostUn = new ArrayList<>();
 
-    private List<BuiltIn> builtIns = new ArrayList<>();
+    private final List<BuiltIn> builtIns = new ArrayList<>();
 
     private Path preTransScript;
 
@@ -143,7 +144,7 @@ public class RpmTask extends Task {
         if (group == null) {
             throw new BuildException("attribute 'group' is required");
         }
-        Integer numEpoch;
+        int numEpoch;
         try {
             numEpoch = Integer.parseInt(epoch);
         } catch (Exception e) {
@@ -165,7 +166,9 @@ public class RpmTask extends Task {
         if (provides != null) {
             rpmBuilder.setProvides(provides);
         }
-        rpmBuilder.setPrefixes(prefixes == null ? null : prefixes.split(","));
+        if (prefixes != null) {
+            rpmBuilder.setPrefixes(Arrays.asList(prefixes.split(",")));
+        }
         rpmBuilder.setPrivateKeyRing(privateKeyRing);
         rpmBuilder.setPrivateKeyId(privateKeyId);
         rpmBuilder.setPrivateKeyPassphrase(privateKeyPassphrase);
@@ -212,8 +215,8 @@ public class RpmTask extends Task {
                     prefix += "/";
                 }
                 DirectoryScanner directoryScanner = fileset.getDirectoryScanner(getProject());
-                Integer filemode = fileset.getFileMode(getProject()) & 4095;
-                Integer dirmode = fileset.getDirMode(getProject()) & 4095;
+                int filemode = fileset.getFileMode(getProject()) & 4095;
+                int dirmode = fileset.getDirMode(getProject()) & 4095;
                 String username = null;
                 String group = null;
                 EnumSet<Directive> directive = null;
@@ -238,13 +241,13 @@ public class RpmTask extends Task {
                         rpmBuilder.addURL(prefix + entry, url, filemode, dirmode, directive, username, group);
                     } else {
                         Path path = directoryScanner.getBasedir().toPath().resolve(entry);
-                        rpmBuilder.addFile(prefix + entry, path, filemode, dirmode, directive, username, group);
+                        rpmBuilder.addFile(prefix + entry, path, filemode, dirmode, directive, username, group, true);
                     }
                 }
             }
             for (Ghost ghost : ghosts) {
                 rpmBuilder.addFile(ghost.getPath(), null, ghost.getFilemode(), ghost.getDirmode(),
-                        ghost.getDirectives(), ghost.getUsername(), ghost.getGroup());
+                        ghost.getDirectives(), ghost.getUsername(), ghost.getGroup(), true);
             }
             for (Link link : links) {
                 rpmBuilder.addLink(link.getPath(), link.getTarget(), link.getPermissions());

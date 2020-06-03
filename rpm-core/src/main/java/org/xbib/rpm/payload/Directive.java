@@ -38,7 +38,7 @@ public enum Directive {
 
     POLICY(1 << 12);
 
-    private int flag;
+    private final int flag;
 
     Directive(final int flag) {
         this.flag = flag;

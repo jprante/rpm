@@ -13,11 +13,11 @@ import java.nio.channels.ReadableByteChannel;
  */
 public class Format {
 
-    private Lead lead = new Lead();
+    private final Lead lead = new Lead();
 
-    private Header header = new Header();
+    private final Header header = new Header();
 
-    private SignatureHeader signatureHeader = new SignatureHeader();
+    private final SignatureHeader signatureHeader = new SignatureHeader();
 
     public Lead getLead() {
         return lead;

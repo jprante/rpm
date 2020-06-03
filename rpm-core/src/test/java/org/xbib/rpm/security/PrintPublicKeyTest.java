@@ -1,8 +1,7 @@
 package org.xbib.rpm.security;
 
 import org.bouncycastle.openpgp.PGPException;
-import org.junit.Test;
-
+import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;

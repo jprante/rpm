@@ -1,33 +1,31 @@
+apply plugin: 'maven'
+
+// for this script, see https://gist.github.com/fikovnik/ffc1fed1867bc7fa679aaf8e48f00c21
+
 configurations {
     mavenEmbedder
 }
 
 dependencies {
-    compile project(':rpm-core')
-    compile "org.mvel:mvel2:${project.property('mvel.version')}"
-    compile "org.apache.ant:ant:${project.property('ant.version')}"
-
+    api project(':rpm-core')
+    api "org.apache.ant:ant:${project.property('ant.version')}"
+    implementation "org.mvel:mvel2:${project.property('mvel.version')}"
     compileOnly "org.apache.maven:maven-core:${project.property('maven.version')}"
     compileOnly "org.apache.maven:maven-plugin-api:${project.property('maven.version')}"
     compileOnly "org.apache.maven.plugin-tools:maven-plugin-annotations:${project.property('maven-plugin-annotations.version')}"
-
-    testCompile "org.apache.maven:maven-core:${project.property('maven.version')}"
-    testCompile "org.apache.maven:maven-plugin-api:${project.property('maven.version')}"
-    testCompile "org.apache.maven.plugin-tools:maven-plugin-annotations:${project.property('maven-plugin-annotations.version')}"
-
+    testImplementation "org.apache.maven:maven-core:${project.property('maven.version')}"
+    testImplementation "org.apache.maven:maven-plugin-api:${project.property('maven.version')}"
+    testImplementation "org.apache.maven.plugin-tools:maven-plugin-annotations:${project.property('maven-plugin-annotations.version')}"
     mavenEmbedder "org.apache.maven:maven-embedder:${project.property('maven.version')}"
-    mavenEmbedder "org.slf4j:slf4j-simple:1.7.25"
-    mavenEmbedder "org.apache.maven.wagon:wagon-http:3.1.0:shaded"
-    mavenEmbedder "org.apache.maven.wagon:wagon-provider-api:3.1.0"
-    mavenEmbedder "org.eclipse.aether:aether-connector-basic:1.1.0"
-    mavenEmbedder "org.eclipse.aether:aether-transport-wagon:1.1.0"
+    mavenEmbedder "org.apache.maven:maven-compat:${project.property('maven.version')}"
+    mavenEmbedder "org.slf4j:slf4j-simple:${project.property('slf4j.version')}"
+    mavenEmbedder "org.apache.maven.wagon:wagon-http:${project.property('maven-wagon.version')}:shaded"
+    mavenEmbedder "org.apache.maven.wagon:wagon-provider-api:${project.property('maven-wagon.version')}"
+    mavenEmbedder "org.eclipse.aether:aether-connector-basic:${project.property('aether-connector-basic.version')}"
+    mavenEmbedder "org.eclipse.aether:aether-transport-wagon:${project.property('aether-transport-wagon.version')}"
 }
 
 test {
-    testLogging {
-        showStandardStreams = false
-        exceptionFormat = 'full'
-    }
     systemProperty 'project.build.testOutputDirectory', project.buildDir.path + "/resources/test"
 }
 
@@ -52,7 +50,7 @@ task generatePluginDescriptor(type: JavaExec, dependsOn: compileJava) {
             '--update-snapshots',
             '--errors',
             '--batch-mode',
-            '--settings', '../config/maven/repo-settings.xml',
+            '--settings', "${project.projectDir}/config/maven/repo-settings.xml",
             '--file', "${buildDir}/pom.xml",
             "org.apache.maven.plugins:maven-plugin-plugin:${project.property('maven-plugin-plugin.version')}:descriptor"
     ]

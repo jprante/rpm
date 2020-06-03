@@ -1,25 +1,25 @@
 package org.xbib.rpm;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import static org.hamcrest.CoreMatchers.*;
 import org.xbib.rpm.format.Flags;
 import org.xbib.rpm.format.Format;
 import org.xbib.rpm.header.HeaderTag;
+import org.xbib.rpm.header.IntegerList;
+import org.xbib.rpm.header.StringList;
 import org.xbib.rpm.lead.Architecture;
 import org.xbib.rpm.lead.Os;
 import org.xbib.rpm.lead.PackageType;
 import org.xbib.rpm.payload.CompressionType;
 import org.xbib.rpm.payload.Directive;
 import org.xbib.rpm.security.HashAlgo;
-
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.List;
 
 /**
  *
@@ -53,20 +53,17 @@ public class RpmBuilderTest {
         rpmBuilder.setType(PackageType.BINARY);
         EnumSet<Directive> directives = EnumSet.of(Directive.CONFIG, Directive.DOC, Directive.NOREPLACE);
         rpmBuilder.addFile("/etc", Paths.get("src/test/resources/prein.sh"), 493, 493,
-                directives, "jabberwocky", "vorpal");
+                directives, "jabberwocky", "vorpal", true);
         rpmBuilder.build(getTargetDir());
         Path path = getTargetDir().resolve("filestest-1.0-1.noarch.rpm");
         Format format = new RpmReader().readHeader(path);
-        assertArrayEquals(new String[]{"jabberwocky"},
-                (String[]) format.getHeader().getEntry(HeaderTag.FILEUSERNAME).getValues());
-        assertArrayEquals(new String[]{"vorpal"},
-                (String[]) format.getHeader().getEntry(HeaderTag.FILEGROUPNAME).getValues());
-        Integer expectedFlags = 0;
+        assertThat(List.of("jabberwocky"), is(format.getHeader().getEntry(HeaderTag.FILEUSERNAME).getValues()));
+        assertThat(List.of("vorpal"), is(format.getHeader().getEntry(HeaderTag.FILEGROUPNAME).getValues()));
+        int expectedFlags = 0;
         for (Directive d : directives) {
             expectedFlags |= d.flag();
         }
-        assertArrayEquals(new Integer[]{expectedFlags},
-                (Integer[]) format.getHeader().getEntry(HeaderTag.FILEFLAGS).getValues());
+        assertThat(List.of(expectedFlags), is(format.getHeader().getEntry(HeaderTag.FILEFLAGS).getValues()));
     }
 
     @Test
@@ -119,30 +116,30 @@ public class RpmBuilderTest {
         rpmBuilder.build(getTargetDir());
         Path path = getTargetDir().resolve("testCapabilities-1.0-1.noarch.rpm");
         Format format = new RpmReader().readHeader(path);
-        String[] require = (String[]) format.getHeader().getEntry(HeaderTag.REQUIRENAME).getValues();
-        Integer[] requireflags = (Integer[]) format.getHeader().getEntry(HeaderTag.REQUIREFLAGS).getValues();
-        String[] requireversion = (String[]) format.getHeader().getEntry(HeaderTag.REQUIREVERSION).getValues();
-        assertArrayEquals(new String[]{"httpd"}, Arrays.copyOfRange(require, require.length - 1, require.length));
-        assertArrayEquals(new Integer[]{0}, Arrays.copyOfRange(requireflags, requireflags.length - 1, require.length));
-        assertArrayEquals(new String[]{""}, Arrays.copyOfRange(requireversion, requireversion.length - 1, require.length));
-        String[] provide = (String[]) format.getHeader().getEntry(HeaderTag.PROVIDENAME).getValues();
-        Integer[] provideflags = (Integer[]) format.getHeader().getEntry(HeaderTag.PROVIDEFLAGS).getValues();
-        String[] provideversion = (String[]) format.getHeader().getEntry(HeaderTag.PROVIDEVERSION).getValues();
-        assertArrayEquals(new String[]{"testCapabilities", "frobnicator", "barnacle"}, provide);
-        assertArrayEquals(new Integer[]{Flags.EQUAL, 0, Flags.EQUAL}, provideflags);
-        assertArrayEquals(new String[]{"0:1.0-1", "", "3.89"}, provideversion);
-        String[] conflict = (String[]) format.getHeader().getEntry(HeaderTag.CONFLICTNAME).getValues();
-        Integer[] conflictflags = (Integer[]) format.getHeader().getEntry(HeaderTag.CONFLICTFLAGS).getValues();
-        String[] conflictversion = (String[]) format.getHeader().getEntry(HeaderTag.CONFLICTVERSION).getValues();
-        assertArrayEquals(new String[]{"fooberry"}, conflict);
-        assertArrayEquals(new Integer[]{Flags.GREATER | Flags.EQUAL}, conflictflags);
-        assertArrayEquals(new String[]{"1a"}, conflictversion);
-        String[] obsolete = (String[]) format.getHeader().getEntry(HeaderTag.OBSOLETENAME).getValues();
-        Integer[] obsoleteflags = (Integer[]) format.getHeader().getEntry(HeaderTag.OBSOLETEFLAGS).getValues();
-        String[] obsoleteversion = (String[]) format.getHeader().getEntry(HeaderTag.OBSOLETEVERSION).getValues();
-        assertArrayEquals(new String[]{"testCappypkg"}, obsolete);
-        assertArrayEquals(new Integer[]{0}, obsoleteflags);
-        assertArrayEquals(new String[]{""}, obsoleteversion);
+        StringList require = (StringList) format.getHeader().getEntry(HeaderTag.REQUIRENAME).getValues();
+        IntegerList requireflags = (IntegerList) format.getHeader().getEntry(HeaderTag.REQUIREFLAGS).getValues();
+        StringList requireversion = (StringList) format.getHeader().getEntry(HeaderTag.REQUIREVERSION).getValues();
+        assertThat(List.of("httpd"), is(require.subList(require.size() - 1, require.size())));
+        assertThat(IntegerList.of(0), is(requireflags.subList(requireflags.size() - 1, requireflags.size())));
+        assertThat(StringList.of(""), is(requireversion.subList(requireversion.size() - 1, requireversion.size())));
+        StringList provide = (StringList) format.getHeader().getEntry(HeaderTag.PROVIDENAME).getValues();
+        IntegerList provideflags = (IntegerList) format.getHeader().getEntry(HeaderTag.PROVIDEFLAGS).getValues();
+        StringList provideversion = (StringList) format.getHeader().getEntry(HeaderTag.PROVIDEVERSION).getValues();
+        assertThat(StringList.of("testCapabilities", "frobnicator", "barnacle"), is(provide));
+        assertThat(IntegerList.of(Flags.EQUAL, 0, Flags.EQUAL), is(provideflags));
+        assertThat(StringList.of("0:1.0-1", "", "3.89"), is(provideversion));
+        StringList conflict = (StringList) format.getHeader().getEntry(HeaderTag.CONFLICTNAME).getValues();
+        IntegerList conflictflags = (IntegerList) format.getHeader().getEntry(HeaderTag.CONFLICTFLAGS).getValues();
+        StringList conflictversion = (StringList) format.getHeader().getEntry(HeaderTag.CONFLICTVERSION).getValues();
+        assertThat(StringList.of("fooberry"), is(conflict));
+        assertThat(IntegerList.of(Flags.GREATER | Flags.EQUAL), is(conflictflags));
+        assertThat(StringList.of("1a"), is(conflictversion));
+        StringList obsolete = (StringList) format.getHeader().getEntry(HeaderTag.OBSOLETENAME).getValues();
+        IntegerList obsoleteflags = (IntegerList) format.getHeader().getEntry(HeaderTag.OBSOLETEFLAGS).getValues();
+        StringList obsoleteversion = (StringList) format.getHeader().getEntry(HeaderTag.OBSOLETEVERSION).getValues();
+        assertThat(StringList.of("testCappypkg"), is(obsolete));
+        assertThat(IntegerList.of(0), is(obsoleteflags));
+        assertThat(StringList.of(""), is(obsoleteversion));
     }
 
     @Test
@@ -157,21 +154,15 @@ public class RpmBuilderTest {
         rpmBuilder.build(getTargetDir());
         Path path = getTargetDir().resolve("testMultipleCapabilities-1.0-1.noarch.rpm");
         Format format = new RpmReader().readHeader(path);
-        String[] require = (String[]) format.getHeader().getEntry(HeaderTag.REQUIRENAME).getValues();
-        Integer[] requireflags = (Integer[]) format.getHeader().getEntry(HeaderTag.REQUIREFLAGS).getValues();
-        String[] requireversion = (String[]) format.getHeader().getEntry(HeaderTag.REQUIREVERSION).getValues();
-        assertArrayEquals(new String[]{"httpd"},
-                Arrays.copyOfRange(require, require.length - 2, require.length - 1));
-        assertArrayEquals(new Integer[]{Flags.GREATER | Flags.EQUAL},
-                Arrays.copyOfRange(requireflags, requireflags.length - 2, require.length - 1));
-        assertArrayEquals(new String[]{"1.0"},
-                Arrays.copyOfRange(requireversion, requireversion.length - 2, require.length - 1));
-        assertArrayEquals(new String[]{"httpd"},
-                Arrays.copyOfRange(require, require.length - 1, require.length));
-        assertArrayEquals(new Integer[]{Flags.LESS},
-                Arrays.copyOfRange(requireflags, requireflags.length - 1, require.length));
-        assertArrayEquals(new String[]{"2.0"},
-                Arrays.copyOfRange(requireversion, requireversion.length - 1, require.length));
+        StringList require = (StringList) format.getHeader().getEntry(HeaderTag.REQUIRENAME).getValues();
+        IntegerList requireflags = (IntegerList) format.getHeader().getEntry(HeaderTag.REQUIREFLAGS).getValues();
+        StringList requireversion = (StringList) format.getHeader().getEntry(HeaderTag.REQUIREVERSION).getValues();
+        assertThat(StringList.of("httpd"), is(require.subList(require.size() - 2, require.size() - 1)));
+        assertThat(IntegerList.of(Flags.GREATER | Flags.EQUAL), is(requireflags.subList(requireflags.size() - 2, requireflags.size() - 1)));
+        assertThat(StringList.of("1.0"), is(requireversion.subList(require.size() - 2, require.size() - 1)));
+        assertThat(StringList.of("httpd"), is(require.subList(require.size() - 1, require.size())));
+        assertThat(IntegerList.of(Flags.LESS), is(requireflags.subList(requireflags.size() - 1, requireflags.size())));
+        assertThat(StringList.of("2.0"), is(requireversion.subList(require.size() - 1, require.size())));
     }
 
     @Test
@@ -186,51 +177,32 @@ public class RpmBuilderTest {
         rpmBuilder.build(getTargetDir());
         Path path = getTargetDir().resolve("testProvideOverride-1.0-1.noarch.rpm");
         Format format = new RpmReader().readHeader(path);
-        String[] provide = (String[]) format.getHeader().getEntry(HeaderTag.PROVIDENAME).getValues();
-        Integer[] provideflags = (Integer[]) format.getHeader().getEntry(HeaderTag.PROVIDEFLAGS).getValues();
-        String[] provideversion = (String[]) format.getHeader().getEntry(HeaderTag.PROVIDEVERSION).getValues();
-        assertEquals(1, provide.length);
-        assertArrayEquals(new String[]{"testProvideOverride"}, Arrays.copyOfRange(provide, 0, provide.length));
-        assertArrayEquals(new Integer[]{Flags.EQUAL}, Arrays.copyOfRange(provideflags, 0, provide.length));
-        assertArrayEquals(new String[]{"1.0"}, Arrays.copyOfRange(provideversion, 0, provide.length));
+        StringList provide = (StringList) format.getHeader().getEntry(HeaderTag.PROVIDENAME).getValues();
+        IntegerList provideflags = (IntegerList) format.getHeader().getEntry(HeaderTag.PROVIDEFLAGS).getValues();
+        StringList provideversion = (StringList) format.getHeader().getEntry(HeaderTag.PROVIDEVERSION).getValues();
+        assertEquals(1, provide.size());
+        assertThat(StringList.of("testProvideOverride"), is(provide));
+        assertThat(IntegerList.of(Flags.EQUAL), is(provideflags));
+        assertThat(StringList.of("1.0"), is(provideversion));
     }
 
     @Test
-    @Ignore
     public void testAddHeaderEntry() {
         RpmBuilder rpmBuilder = new RpmBuilder();
-        rpmBuilder.addHeaderEntry(HeaderTag.CHANGELOGTIME, new Integer(1));
-        try {
-            rpmBuilder.addHeaderEntry(HeaderTag.CHANGELOGNAME, 1L);
-        } catch (ClassCastException e) {
-            //
-        }
-        try {
-            rpmBuilder.addHeaderEntry(HeaderTag.CHANGELOGTIME, "Mon Jan 01 2016");
-            fail("ClassCastException expected on setting header String value where int expected.");
-        } catch (ClassCastException e) {
-            //
-        }
-        try {
-            rpmBuilder.addHeaderEntry(HeaderTag.CHANGELOGTIME, 1L);
-            fail("ClassCastException expected on setting header long value where int expected.");
-        } catch (ClassCastException e) {
-            //
-        }
-        try {
+        rpmBuilder.addHeaderEntry(HeaderTag.CHANGELOGTIME, Integer.valueOf(1));
+        Assertions.assertThrows(ClassCastException.class, () ->
+                rpmBuilder.addHeaderEntry(HeaderTag.CHANGELOGNAME, 1L));
+        rpmBuilder.addHeaderEntry(HeaderTag.CHANGELOGTIME, "Mon Jan 01 2016");
+        Assertions.assertThrows(ClassCastException.class, () ->
+                rpmBuilder.addHeaderEntry(HeaderTag.CHANGELOGTIME, 1L));
+        Assertions.assertThrows(ClassCastException.class, () -> {
             short s = (short) 1;
             rpmBuilder.addHeaderEntry(HeaderTag.CHANGELOGTIME, s);
-            fail("ClassCastException expected on setting header short value where int expected.");
-        } catch (ClassCastException e) {
-            //
-        }
-        try {
-            Character c = 'c';
+        });
+        Assertions.assertThrows(ClassCastException.class, () -> {
+            char c = 'c';
             rpmBuilder.addHeaderEntry(HeaderTag.CHANGELOGTIME, c);
-            fail("ClassCastException expected on setting header char value where int expected.");
-        } catch (ClassCastException e) {
-            //
-        }
+        });
     }
 
     @Test
@@ -243,10 +215,10 @@ public class RpmBuilderTest {
         rpmBuilder.setType(PackageType.BINARY);
         EnumSet<Directive> directives = EnumSet.of(Directive.CONFIG, Directive.DOC, Directive.NOREPLACE);
         rpmBuilder.addFile("/etc", Paths.get("src/test/resources/prein.sh"), 493, 493,
-                directives, "jabberwocky", "vorpal");
+                directives, "jabberwocky", "vorpal", true);
         rpmBuilder.build(getTargetDir());
         Path path = getTargetDir().resolve("test-compressed-1.0-1.noarch.rpm");
-        Format format = new RpmReader().readHeader(path);
+        new RpmReader().readHeader(path);
     }
 
     private Path getTargetDir() {

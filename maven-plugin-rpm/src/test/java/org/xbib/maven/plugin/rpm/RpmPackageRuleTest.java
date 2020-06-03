@@ -1,14 +1,15 @@
 package org.xbib.maven.plugin.rpm;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import org.apache.maven.monitor.logging.DefaultLog;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.logging.console.ConsoleLogger;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.xbib.maven.plugin.rpm.mojo.PackageRpmMojo;
 import org.xbib.rpm.exception.InvalidDirectiveException;
 import org.xbib.rpm.exception.InvalidPathException;
@@ -33,8 +34,8 @@ public class RpmPackageRuleTest extends RpmBaseObjectTest {
 
     private RpmPackage rpmPackage;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    public void setUp() {
         testOutputPath = System.getProperty("project.build.testOutputDirectory");
         PackageRpmMojo mojo = new PackageRpmMojo();
         mojo.setDefaultFileMode(0644);
@@ -84,9 +85,9 @@ public class RpmPackageRuleTest extends RpmBaseObjectTest {
     @Test
     public void destinationAccessors() {
         rpmFileRule.setDestination("");
-        assertEquals(null, rpmFileRule.getDestination());
+        assertNull(rpmFileRule.getDestination());
         rpmFileRule.setDestination(null);
-        assertEquals(null, rpmFileRule.getDestination());
+        assertNull(rpmFileRule.getDestination());
         assertEquals(String.format("%svar%swww%stest", File.separator, File.separator, File.separator),
                 rpmFileRule.getDestinationOrDefault());
         rpmFileRule.setDestination(String.format("%sfoo", File.separator));
@@ -131,10 +132,12 @@ public class RpmPackageRuleTest extends RpmBaseObjectTest {
         assertEquals(62, files.length);
     }
 
-    @Test(expected = PathOutsideBuildPathException.class)
+    @Test
     public void testListFilesOutsideBuildPath() throws RpmException {
-        rpmFileRule.setBase(String.format("..%s", File.separator));
-        rpmFileRule.listFiles();
+        Assertions.assertThrows(PathOutsideBuildPathException.class, () -> {
+            rpmFileRule.setBase(String.format("..%s", File.separator));
+            rpmFileRule.listFiles();
+        });
     }
 
     @Test

@@ -1,11 +1,9 @@
 package org.xbib.maven.plugin.rpm;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import org.junit.Before;
-import org.junit.Test;
-
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,7 +15,7 @@ import java.nio.file.Paths;
 public class RpmScriptTemplateRendererTest {
     private String testOutputPath;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         this.testOutputPath = System.getProperty("project.build.testOutputDirectory");
     }

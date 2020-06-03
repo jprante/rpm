@@ -5,6 +5,7 @@ import org.xbib.io.compress.xz.XZInputStream;
 import org.xbib.rpm.format.Format;
 import org.xbib.rpm.header.Header;
 import org.xbib.rpm.header.HeaderTag;
+import org.xbib.rpm.header.StringList;
 import org.xbib.rpm.header.entry.SpecEntry;
 import org.xbib.rpm.io.ChannelWrapper;
 import org.xbib.rpm.io.ReadableChannelWrapper;
@@ -18,11 +19,13 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.zip.GZIPInputStream;
 
 /**
  * The RPM reader reads an archive and outputs useful information about its contents. The reader will
- * output the headers of the RPM format itself, aswell as the individual headers for the particular
+ * output the headers of the RPM format itself, as well as the individual headers for the particular
  * packaged content.
  * In addition, the reader will read through the payload and output information about each file
  * contained in the embedded CPIO payload.
@@ -32,17 +35,17 @@ public class RpmReader {
     public RpmReader() {
     }
 
-    public Format read(Path path) throws IOException {
-        return read(Files.newInputStream((path)));
+    public Format readFormat(Path path) throws IOException {
+        return readFormat(Files.newInputStream((path)));
     }
 
-    public Format read(InputStream inputStream) throws IOException {
+    public Format readFormat(InputStream inputStream) throws IOException {
         try (InputStream thisInputStream = inputStream) {
-            return read(new ReadableChannelWrapper(Channels.newChannel(thisInputStream)), thisInputStream);
+            return readFormat(new ReadableChannelWrapper(Channels.newChannel(thisInputStream)), thisInputStream);
         }
     }
 
-    public Format read(ReadableChannelWrapper readableChannelWrapper, InputStream inputStream) throws IOException {
+    public Format readFormat(ReadableChannelWrapper readableChannelWrapper, InputStream inputStream) throws IOException {
         Format format = readHeader(readableChannelWrapper);
         Header rpmHeader = format.getHeader();
         try (InputStream uncompressed = createUncompressedStream(rpmHeader, inputStream)) {
@@ -62,6 +65,54 @@ public class RpmReader {
         return format;
     }
 
+    public RpmReaderResult read(Path path) throws IOException {
+        return read(Files.newInputStream((path)));
+    }
+
+    public RpmReaderResult read(InputStream inputStream) throws IOException {
+        try (InputStream thisInputStream = inputStream) {
+            return read(new ReadableChannelWrapper(Channels.newChannel(thisInputStream)), thisInputStream);
+        }
+    }
+
+    public RpmReaderResult read(ReadableChannelWrapper wrapper, InputStream inputStream) throws IOException {
+        final Format format = readHeader(wrapper);
+        final List<RpmReaderFile> list = new ArrayList<>();
+        try (InputStream uncompressed = createUncompressedStream(format.getHeader(), inputStream)) {
+            wrapper = new ReadableChannelWrapper(Channels.newChannel(uncompressed));
+            CpioHeader header;
+            int total = 0;
+            do {
+                header = new CpioHeader();
+                total = header.read(wrapper, total);
+                int fileSize = header.getFileSize();
+                boolean includingContents = header.getType() == CpioHeader.FILE;
+                if (!header.isLast()) {
+                    ByteBuffer byteBuffer = includingContents ? ChannelWrapper.fill(wrapper, fileSize) : null;
+                    list.add(new RpmReaderFile(header, byteBuffer));
+                }
+                if (!includingContents) {
+                    if (uncompressed.skip(fileSize) != fileSize) {
+                        throw new RuntimeException();
+                    }
+                }
+                total += fileSize;
+            } while (!header.isLast());
+        }
+
+
+        return new RpmReaderResult() {
+            @Override
+            public Format getFormat() {
+                return format;
+            }
+
+            @Override
+            public List<RpmReaderFile> getFiles() {
+                return list;
+            }
+        };
+    }
 
     public Format readHeader(Path path) throws IOException {
         return readHeader(Files.newInputStream((path)));
@@ -114,8 +165,8 @@ public class RpmReader {
     private static InputStream createUncompressedStream(Header header, InputStream inputStream) throws IOException {
         InputStream compressedInput = inputStream;
         SpecEntry<?> pcEntry = header.getEntry(HeaderTag.PAYLOADCOMPRESSOR);
-        String[] pc = (String[]) pcEntry.getValues();
-        CompressionType compressionType = CompressionType.valueOf(pc[0].toUpperCase());
+        StringList pc = (StringList) pcEntry.getValues();
+        CompressionType compressionType = CompressionType.valueOf(pc.get(0).toUpperCase());
         switch (compressionType) {
             case NONE:
                 break;

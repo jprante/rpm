@@ -1,20 +1,22 @@
 package org.xbib.rpm.ant;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.types.EnumeratedAttribute;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.xbib.rpm.RpmReader;
 import org.xbib.rpm.changelog.ChangelogParser;
 import org.xbib.rpm.format.Flags;
 import org.xbib.rpm.format.Format;
 import org.xbib.rpm.header.EntryType;
 import org.xbib.rpm.header.HeaderTag;
+import org.xbib.rpm.header.IntegerList;
+import org.xbib.rpm.header.StringList;
 import org.xbib.rpm.header.entry.SpecEntry;
 import org.xbib.rpm.payload.Directive;
 import org.xbib.rpm.signature.SignatureTag;
@@ -24,7 +26,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.Arrays;
 import java.util.EnumSet;
 
 /**
@@ -237,33 +238,30 @@ public class RpmTaskTest {
         }
         task.execute();
         Format format = getFormat(filename);
-        String[] require = (String[]) format.getHeader().getEntry(HeaderTag.REQUIRENAME).getValues();
-        Integer[] requireflags = (Integer[]) format.getHeader().getEntry(HeaderTag.REQUIREFLAGS).getValues();
-        String[] requireversion = (String[]) format.getHeader().getEntry(HeaderTag.REQUIREVERSION).getValues();
-        assertArrayEquals(new String[]{"depone", "deptwo", "depthree"},
-                Arrays.copyOfRange(require, require.length - 3, require.length));
-        assertArrayEquals(new Integer[]{Flags.EQUAL | Flags.GREATER, Flags.LESS, 0},
-                Arrays.copyOfRange(requireflags, requireflags.length - 3, require.length));
-        assertArrayEquals(new String[]{"1.0", "2.0", ""},
-                Arrays.copyOfRange(requireversion, requireversion.length - 3, require.length));
-        String[] provide = (String[]) format.getHeader().getEntry(HeaderTag.PROVIDENAME).getValues();
-        Integer[] provideflags = (Integer[]) format.getHeader().getEntry(HeaderTag.PROVIDEFLAGS).getValues();
-        String[] provideversion = (String[]) format.getHeader().getEntry(HeaderTag.PROVIDEVERSION).getValues();
-        assertArrayEquals(new String[]{"rpmtest", "provone", "provtwo", "provthree"}, provide);
-        assertArrayEquals(new Integer[]{Flags.EQUAL, Flags.EQUAL, Flags.EQUAL, 0}, provideflags);
-        assertArrayEquals(new String[]{"0:1.0-1", "1.1", "2.1", ""}, provideversion);
-        String[] conflict = (String[]) format.getHeader().getEntry(HeaderTag.CONFLICTNAME).getValues();
-        Integer[] conflictflags = (Integer[]) format.getHeader().getEntry(HeaderTag.CONFLICTFLAGS).getValues();
-        String[] conflictversion = (String[]) format.getHeader().getEntry(HeaderTag.CONFLICTVERSION).getValues();
-        assertArrayEquals(new String[]{"conone", "contwo", "conthree"}, conflict);
-        assertArrayEquals(new Integer[]{Flags.EQUAL | Flags.GREATER, Flags.LESS, 0}, conflictflags);
-        assertArrayEquals(new String[]{"1.2", "2.2", ""}, conflictversion);
-        String[] obsolete = (String[]) format.getHeader().getEntry(HeaderTag.OBSOLETENAME).getValues();
-        Integer[] obsoleteflags = (Integer[]) format.getHeader().getEntry(HeaderTag.OBSOLETEFLAGS).getValues();
-        String[] obsoleteversion = (String[]) format.getHeader().getEntry(HeaderTag.OBSOLETEVERSION).getValues();
-        assertArrayEquals(new String[]{"obsone", "obstwo", "obsthree"}, obsolete);
-        assertArrayEquals(new Integer[]{Flags.EQUAL | Flags.GREATER, Flags.LESS, 0}, obsoleteflags);
-        assertArrayEquals(new String[]{"1.3", "2.3", ""}, obsoleteversion);
+        StringList require = (StringList)  format.getHeader().getEntry(HeaderTag.REQUIRENAME).getValues();
+        IntegerList requireflags = (IntegerList) format.getHeader().getEntry(HeaderTag.REQUIREFLAGS).getValues();
+        StringList requireversion = (StringList) format.getHeader().getEntry(HeaderTag.REQUIREVERSION).getValues();
+        assertThat(StringList.of("depone", "deptwo", "depthree"), is(require.subList(require.size() - 3, require.size())));
+        assertThat(IntegerList.of(Flags.EQUAL | Flags.GREATER, Flags.LESS, 0), is(requireflags.subList(requireflags.size() - 3, requireflags.size())));
+        assertThat(StringList.of("1.0", "2.0", ""), is(requireversion.subList(requireversion.size() - 3, requireversion.size())));
+        StringList provide = (StringList) format.getHeader().getEntry(HeaderTag.PROVIDENAME).getValues();
+        IntegerList provideflags = (IntegerList) format.getHeader().getEntry(HeaderTag.PROVIDEFLAGS).getValues();
+        StringList provideversion = (StringList) format.getHeader().getEntry(HeaderTag.PROVIDEVERSION).getValues();
+        assertThat(StringList.of("rpmtest", "provone", "provtwo", "provthree"), is(provide));
+        assertThat(IntegerList.of(Flags.EQUAL, Flags.EQUAL, Flags.EQUAL, 0), is(provideflags));
+        assertThat(StringList.of("0:1.0-1", "1.1", "2.1", ""), is(provideversion));
+        StringList conflict = (StringList) format.getHeader().getEntry(HeaderTag.CONFLICTNAME).getValues();
+        IntegerList conflictflags = (IntegerList) format.getHeader().getEntry(HeaderTag.CONFLICTFLAGS).getValues();
+        StringList conflictversion = (StringList) format.getHeader().getEntry(HeaderTag.CONFLICTVERSION).getValues();
+        assertThat(StringList.of("conone", "contwo", "conthree"), is(conflict));
+        assertThat(IntegerList.of(Flags.EQUAL | Flags.GREATER, Flags.LESS, 0), is(conflictflags));
+        assertThat(StringList.of("1.2", "2.2", ""), is(conflictversion));
+        StringList obsolete = (StringList) format.getHeader().getEntry(HeaderTag.OBSOLETENAME).getValues();
+        IntegerList obsoleteflags = (IntegerList) format.getHeader().getEntry(HeaderTag.OBSOLETEFLAGS).getValues();
+        StringList obsoleteversion = (StringList) format.getHeader().getEntry(HeaderTag.OBSOLETEVERSION).getValues();
+        assertThat(StringList.of("obsone", "obstwo", "obsthree"), is(obsolete));
+        assertThat(IntegerList.of(Flags.EQUAL | Flags.GREATER, Flags.LESS, 0), is(obsoleteflags));
+        assertThat(StringList.of("1.3", "2.3", ""), is(obsoleteversion));
     }
 
     @Test
@@ -342,16 +340,14 @@ public class RpmTaskTest {
         task.addRpmfileset(fs);
         task.execute();
         Format format = getFormat(filename);
-        assertArrayEquals(new String[]{"jabberwocky"},
-                (String[]) format.getHeader().getEntry(HeaderTag.FILEUSERNAME).getValues());
-        assertArrayEquals(new String[]{"vorpal"},
-                (String[]) format.getHeader().getEntry(HeaderTag.FILEGROUPNAME).getValues());
+        assertThat(StringList.of("jabberwocky"), is(format.getHeader().getEntry(HeaderTag.FILEUSERNAME).getValues()));
+        assertThat(StringList.of("vorpal"), is(format.getHeader().getEntry(HeaderTag.FILEGROUPNAME).getValues()));
         EnumSet<Directive> directives = EnumSet.of(Directive.CONFIG, Directive.DOC, Directive.NOREPLACE);
-        Integer expectedFlags = 0;
+        int expectedFlags = 0;
         for (Directive d : directives) {
             expectedFlags |= d.flag();
         }
-        assertInt32EntryHeaderEquals(new Integer[]{expectedFlags}, format, HeaderTag.FILEFLAGS);
+        assertInt32EntryHeaderEquals(IntegerList.of(expectedFlags), format, HeaderTag.FILEFLAGS);
     }
 
     @Test
@@ -428,47 +424,47 @@ public class RpmTaskTest {
     }
 
     private void assertHeaderEquals(String expected, Format format, EntryType entryType) {
-        assertNotNull("null format", format);
+        assertNotNull(format, "null format");
         SpecEntry<?> entry = format.getHeader().getEntry(entryType);
-        assertNotNull("Entry not found : " + entryType.getName(), entry);
-        assertEquals("Entry type : " + entryType.getName(), 6, entry.getType());
-        String[] values = (String[]) entry.getValues();
-        assertNotNull("null values", values);
-        assertEquals("Entry size : " + entryType.getName(), 1, values.length);
-        assertEquals("Entry value : " + entryType.getName(), expected, values[0]);
+        assertNotNull(entry, "Entry not found : " + entryType.getName());
+        assertEquals(6, entry.getType(), "Entry type : " + entryType.getName());
+        StringList values = (StringList) entry.getValues();
+        assertNotNull(values, "null values");
+        assertEquals(1, values.size(), "Entry size : " + entryType.getName());
+        assertEquals(expected, values.get(0), "Entry value : " + entryType.getName());
     }
 
     private void assertHeaderEqualsAt(String expected, Format format, EntryType entryType, int size, int pos) {
-        assertNotNull("null format", format);
+        assertNotNull(format, "null format");
         SpecEntry<?> entry = format.getHeader().getEntry(entryType);
-        assertNotNull("Entry not found : " + entryType.getName(), entry);
-        assertEquals("Entry type : " + entryType.getName(), 8, entry.getType());
-        String[] values = (String[]) entry.getValues();
-        assertNotNull("null values", values);
-        assertEquals("Entry size : " + entryType.getName(), size, values.length);
-        assertEquals("Entry value : " + entryType.getName(), expected, values[pos]);
+        assertNotNull(entry, "Entry not found : " + entryType.getName());
+        assertEquals(8, entry.getType(), "Entry type : " + entryType.getName());
+        StringList values = (StringList) entry.getValues();
+        assertNotNull(values, "null values");
+        assertEquals(size, values.size(), "Entry size : " + entryType.getName());
+        assertEquals(expected, values.get(pos), "Entry value : " + entryType.getName());
     }
 
-    private void assertInt32EntryHeaderEquals(Integer[] expected, Format format, EntryType entryType) {
-        assertNotNull("null format", format);
+    private void assertInt32EntryHeaderEquals(IntegerList expected, Format format, EntryType entryType) {
+        assertNotNull(format, "null format");
         SpecEntry<?> entry = format.getHeader().getEntry(entryType);
-        assertNotNull("Entry not found : " + entryType.getName(), entry);
-        assertEquals("Entry type : " + entryType.getName(), 4, entry.getType());
-        Integer[] values = (Integer[]) entry.getValues();
-        assertNotNull("null values", values);
-        assertEquals("Entry size : " + entryType.getName(), 1, values.length);
-        assertArrayEquals("Entry value : " + entryType.getName(), expected, values);
+        assertNotNull(entry, "Entry not found : " + entryType.getName());
+        assertEquals(4, entry.getType(), "Entry type : " + entryType.getName());
+        IntegerList values = (IntegerList) entry.getValues();
+        assertNotNull(values, "null values");
+        assertEquals(1, values.size(), "Entry size : " + entryType.getName());
+        assertThat("Entry value : " + entryType.getName(), expected, is(values));
     }
 
     private void assertDateEntryHeaderEqualsAt(String expected, Format format, EntryType entryType, int size, int pos) {
-        assertNotNull("null format", format);
+        assertNotNull(format, "null format");
         SpecEntry<?> entry = format.getHeader().getEntry(entryType);
-        assertNotNull("Entry not found : " + entryType.getName(), entry);
-        assertEquals("Entry type : " + entryType.getName(), 4, entry.getType());
-        Integer[] values = (Integer[]) entry.getValues();
-        assertNotNull("null values", values);
-        assertEquals("Entry size : " + entryType.getName(), size, values.length);
-        LocalDateTime localDate = LocalDateTime.ofEpochSecond(values[pos], 0, ZoneOffset.UTC);
-        assertEquals("Entry value : " + entryType.getName(), expected, ChangelogParser.CHANGELOG_FORMAT.format(localDate));
+        assertNotNull(entry, "Entry not found : " + entryType.getName());
+        assertEquals(4, entry.getType(), "Entry type : " + entryType.getName());
+        IntegerList values = (IntegerList) entry.getValues();
+        assertNotNull(values, "null values");
+        assertEquals(size, values.size(), "Entry size : " + entryType.getName());
+        LocalDateTime localDate = LocalDateTime.ofEpochSecond(values.get(pos), 0, ZoneOffset.UTC);
+        assertEquals(expected, ChangelogParser.CHANGELOG_FORMAT.format(localDate), "Entry value : " + entryType.getName());
     }
 }

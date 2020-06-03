@@ -1,13 +1,14 @@
 package org.xbib.rpm.header.entry;
 
 import org.xbib.rpm.header.EntryType;
+import org.xbib.rpm.header.LongList;
 
 import java.nio.ByteBuffer;
 
 /**
  *
  */
-public class Int64SpecEntry extends AbstractSpecEntry<long[]> {
+public class Int64SpecEntry extends AbstractSpecEntry<LongList> {
 
     @Override
     public int getOffset(int offset) {
@@ -26,16 +27,16 @@ public class Int64SpecEntry extends AbstractSpecEntry<long[]> {
 
     @Override
     public void read(ByteBuffer buffer) {
-        long[] values = new long[count];
+        LongList values = new LongList();
         for (int x = 0; x < count; x++) {
-            values[x] = buffer.getLong();
+            values.add(buffer.getLong());
         }
         setValues(values);
     }
 
     @Override
     public void write(ByteBuffer data) {
-        for (long l : values) {
+        for (Long l : values) {
             data.putLong(l);
         }
     }

@@ -1,5 +1,0 @@
-This is a derived work of
-
-https://github.com/nebula-plugins/gradle-ospackage-plugin
-
-licensed under Apache Software License 2.0.

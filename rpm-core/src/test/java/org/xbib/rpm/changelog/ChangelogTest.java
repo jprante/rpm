@@ -1,14 +1,15 @@
 package org.xbib.rpm.changelog;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.jupiter.api.Test;
 import org.xbib.rpm.RpmBuilder;
 import org.xbib.rpm.RpmReader;
 import org.xbib.rpm.format.Format;
 import org.xbib.rpm.header.EntryType;
 import org.xbib.rpm.header.HeaderTag;
+import org.xbib.rpm.header.IntegerList;
+import org.xbib.rpm.header.StringList;
 import org.xbib.rpm.header.entry.SpecEntry;
 
 import java.nio.file.Path;
@@ -24,11 +25,11 @@ public class ChangelogTest {
     @Test
     public void testChangelog() throws Exception {
         RpmBuilder rpmBuilder = new RpmBuilder();
-        rpmBuilder.addChangelog(getClass().getResource("changelog"));
+        rpmBuilder.addChangelog(getClass().getResource("changelog").openStream());
         Path path = Paths.get("build");
         rpmBuilder.build(path);
         RpmReader rpmReader = new RpmReader();
-        Format format = rpmReader.read(path.resolve(rpmBuilder.getPackageName()));
+        Format format = rpmReader.readFormat(path.resolve(rpmBuilder.getPackageName()));
         assertDateEntryHeaderEqualsAt("Tue Feb 24 2015", format,
                 HeaderTag.CHANGELOGTIME, 10, 0);
         assertHeaderEqualsAt("Thomas Jefferson", format,
@@ -42,25 +43,25 @@ public class ChangelogTest {
     }
 
     private void assertDateEntryHeaderEqualsAt(String expected, Format format, EntryType entryType, int size, int pos) {
-        assertNotNull("null format", format);
+        assertNotNull(format, "null format");
         SpecEntry<?> entry = format.getHeader().getEntry(entryType);
-        assertNotNull("Entry not found : " + entryType.getName(), entry);
-        assertEquals("Entry type : " + entryType.getName(), 4, entry.getType());
-        Integer[] values = (Integer[]) entry.getValues();
-        assertNotNull("null values", values);
-        assertEquals("Entry size : " + entryType.getName(), size, values.length);
-        LocalDateTime localDate = LocalDateTime.ofEpochSecond(values[pos], 0, ZoneOffset.UTC);
-        assertEquals("Entry value : " + entryType.getName(), expected, ChangelogParser.CHANGELOG_FORMAT.format(localDate));
+        assertNotNull(entry, "Entry not found : " + entryType.getName());
+        assertEquals(4, entry.getType(), "Entry type : " + entryType.getName());
+        IntegerList values = (IntegerList) entry.getValues();
+        assertNotNull(values, "null values");
+        assertEquals(size, values.size(), "Entry size : " + entryType.getName());
+        LocalDateTime localDate = LocalDateTime.ofEpochSecond(values.get(pos), 0, ZoneOffset.UTC);
+        assertEquals(expected, ChangelogParser.CHANGELOG_FORMAT.format(localDate), "Entry value : " + entryType.getName());
     }
 
     private void assertHeaderEqualsAt(String expected, Format format, EntryType entryType, int size, int pos) {
-        assertNotNull("null format", format);
+        assertNotNull(format, "null format");
         SpecEntry<?> entry = format.getHeader().getEntry(entryType);
-        assertNotNull("Entry not found : " + entryType.getName(), entry);
-        assertEquals("Entry type : " + entryType.getName(), 8, entry.getType());
-        String[] values = (String[]) entry.getValues();
-        assertNotNull("null values", values);
-        assertEquals("Entry size : " + entryType.getName(), size, values.length);
-        assertEquals("Entry value : " + entryType.getName(), expected, values[pos]);
+        assertNotNull(entry, "Entry not found : " + entryType.getName());
+        assertEquals(8, entry.getType(), "Entry type : " + entryType.getName());
+        StringList values = (StringList) entry.getValues();
+        assertNotNull(values, "null values");
+        assertEquals(size, values.size(), "Entry size : " + entryType.getName());
+        assertEquals(expected, values.get(pos), "Entry value : " + entryType.getName());
     }
 }

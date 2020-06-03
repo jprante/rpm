@@ -16,7 +16,7 @@ public enum SignatureTag implements EntryType {
     MD5(261, BIN_ENTRY, "md5"),
     GPG(262, BIN_ENTRY, "gpg"),
     // 263, 264, 265 are obsolete
-    PUBKEYS(266, STRING_ARRAY_ENTRY, "pubkeys"),
+    PUBKEYS(266, STRING_LIST_ENTRY, "pubkeys"),
     DSAHEADER(267, BIN_ENTRY, "dsaheader"),
     RSAHEADER(268, BIN_ENTRY, "rsaheader"),
     SHA1HEADER(269, STRING_ENTRY, "sha1header"),
@@ -36,11 +36,11 @@ public enum SignatureTag implements EntryType {
 
     ;
 
-    private int code;
+    private final int code;
 
-    private int type;
+    private final int type;
 
-    private String name;
+    private final String name;
 
     SignatureTag(final int code, final int type, final String name) {
         this.code = code;

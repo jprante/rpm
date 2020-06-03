@@ -1,16 +1,15 @@
 package org.xbib.maven.plugin.rpm.mojo;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.apache.maven.model.Build;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.xbib.maven.plugin.rpm.RpmPackage;
 import org.xbib.maven.plugin.rpm.RpmPackageRule;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +25,7 @@ public class PackageRpmMojoTest {
 
     private RpmPackageRule packageRule;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         // Test output path
         String testOutputPath = System.getProperty("project.build.testOutputDirectory");
@@ -59,7 +58,7 @@ public class PackageRpmMojoTest {
         includes.add("**");
         packageRule.setIncludes(includes);
         mojo.execute();
-        assertEquals(true, project.getArtifact().getFile().exists());
+        assertTrue(project.getArtifact().getFile().exists());
     }
 
     @Test
@@ -73,12 +72,14 @@ public class PackageRpmMojoTest {
         assertNull(project.getArtifact());
     }
 
-    @Test(expected = MojoExecutionException.class)
+    @Test
     public void packageRpmMissedFiles() throws MojoExecutionException {
-        project.setVersion("2.0-SNAPSHOT");
-        List<String> includes = new ArrayList<>();
-        packageRule.setIncludes(includes);
-        mojo.execute();
+        Assertions.assertThrows(MojoExecutionException.class, () -> {
+            project.setVersion("2.0-SNAPSHOT");
+            List<String> includes = new ArrayList<>();
+            packageRule.setIncludes(includes);
+            mojo.execute();
+        });
     }
 
     @Test
@@ -91,13 +92,15 @@ public class PackageRpmMojoTest {
         mojo.execute();
     }
 
-    @Test(expected = MojoExecutionException.class)
+    @Test
     public void packageRpmNoFilesPackaged() throws MojoExecutionException {
-        mojo.setPerformCheckingForExtraFiles(false);
-        project.setVersion("4.0-SNAPSHOT");
-        List<String> includes = new ArrayList<>();
-        packageRule.setIncludes(includes);
-        mojo.execute();
+        Assertions.assertThrows(MojoExecutionException.class, () -> {
+            mojo.setPerformCheckingForExtraFiles(false);
+            project.setVersion("4.0-SNAPSHOT");
+            List<String> includes = new ArrayList<>();
+            packageRule.setIncludes(includes);
+            mojo.execute();
+        });
     }
 
     @Test

@@ -4,7 +4,7 @@ import org.apache.maven.monitor.logging.DefaultLog;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.logging.console.ConsoleLogger;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.xbib.maven.plugin.rpm.mojo.PackageRpmMojo;
 
 import java.io.File;
@@ -16,7 +16,7 @@ public class RpmLinkTest extends RpmBaseObjectTest {
 
     private RpmLink rpmLink;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         String testOutputPath = System.getProperty("project.build.testOutputDirectory");
         PackageRpmMojo mojo = new PackageRpmMojo();

@@ -12,6 +12,10 @@ import org.xbib.rpm.format.Flags;
 import org.xbib.rpm.format.Format;
 import org.xbib.rpm.header.EntryType;
 import org.xbib.rpm.header.HeaderTag;
+import org.xbib.rpm.header.IntegerList;
+import org.xbib.rpm.header.LongList;
+import org.xbib.rpm.header.ShortList;
+import org.xbib.rpm.header.StringList;
 import org.xbib.rpm.header.entry.SpecEntry;
 import org.xbib.rpm.io.ChannelWrapper;
 import org.xbib.rpm.io.WritableChannelWrapper;
@@ -26,10 +30,10 @@ import org.xbib.rpm.security.HashAlgo;
 import org.xbib.rpm.security.SignatureGenerator;
 import org.xbib.rpm.signature.SignatureTag;
 import org.xbib.rpm.trigger.Trigger;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -99,7 +103,7 @@ public class RpmBuilder {
 
     private int triggerCounter = 0;
 
-    private CompressionType compressionType;
+    private final CompressionType compressionType;
 
     private String packageName;
 
@@ -110,7 +114,7 @@ public class RpmBuilder {
     /**
      * Initializes the builder and sets some required fields to known values.
      * @param privateKeyHashAlgo the hash algo
-     *  @param compressionType compression type
+     * @param compressionType compression type
      */
     public RpmBuilder(HashAlgo privateKeyHashAlgo, CompressionType compressionType) {
         this.privateKeyHashAlgo = privateKeyHashAlgo;
@@ -129,102 +133,6 @@ public class RpmBuilder {
         addDependencyLess("rpmlib(PayloadIsXz)", "5.2-1");
     }
 
-    /**
-     * Returns an array of String with the name of every dependency from a list of dependencies.
-     *
-     * @param dependencyList List of dependencies
-     * @return String[] with all names of the dependencies
-     */
-    private static String[] getArrayOfNames(List<Dependency> dependencyList) {
-        List<String> list = new ArrayList<>();
-        for (Dependency dependency : dependencyList) {
-            list.add(dependency.getName());
-        }
-        return list.toArray(new String[list.size()]);
-    }
-
-    /**
-     * Returns an array of String with the version of every dependency from a list of dependencies.
-     *
-     * @param dependencyList List of dependencies
-     * @return String[] with all versions of the dependencies
-     */
-    private static String[] getArrayOfVersions(List<Dependency> dependencyList) {
-        List<String> versionList = new ArrayList<>();
-        for (Dependency dependency : dependencyList) {
-            versionList.add(dependency.getVersion());
-        }
-        return versionList.toArray(new String[versionList.size()]);
-    }
-
-    /**
-     * Returns an array of Integer with the flags of every dependency from a list of dependencies.
-     *
-     * @param dependencyList List of dependencies
-     * @return Integer[] with all flags of the dependencies
-     */
-    private static Integer[] getArrayOfFlags(List<Dependency> dependencyList) {
-        List<Integer> flagsList = new ArrayList<>();
-        for (Dependency dependency : dependencyList) {
-            flagsList.add(dependency.getFlags());
-        }
-        return flagsList.toArray(new Integer[flagsList.size()]);
-    }
-
-    /**
-     * Returns an array of String with the name of every dependency from a list of dependencies.
-     *
-     * @param dependencies List of dependencies
-     * @return String[] with all names of the dependencies
-     */
-    private static String[] getArrayOfNames(Map<String, Dependency> dependencies) {
-        List<String> nameList = new ArrayList<>();
-        for (Dependency dependency : dependencies.values()) {
-            nameList.add(dependency.getName());
-        }
-        return nameList.toArray(new String[nameList.size()]);
-    }
-
-    /**
-     * Returns an array of String with the version of every dependency from a list of dependencies.
-     *
-     * @param dependencies List of dependencies
-     * @return String[] with all versions of the dependencies
-     */
-    private static String[] getArrayOfVersions(Map<String, Dependency> dependencies) {
-        List<String> versionList = new ArrayList<>();
-        for (Dependency dependency : dependencies.values()) {
-            versionList.add(dependency.getVersion());
-        }
-        return versionList.toArray(new String[versionList.size()]);
-    }
-
-    /**
-     * Returns an array of Integer with the flags of every dependency from a list of dependencies.
-     *
-     * @param dependencies List of dependencies
-     * @return Integer[] with all flags of the dependencies
-     */
-    private static Integer[] getArrayOfFlags(Map<String, Dependency> dependencies) {
-        List<Integer> flagsList = new ArrayList<>();
-        for (Dependency dependency : dependencies.values()) {
-            flagsList.add(dependency.getFlags());
-        }
-        return flagsList.toArray(new Integer[flagsList.size()]);
-    }
-
-    private static int difference(int start, int boundary) {
-        return ((boundary + 1) - (start & boundary)) & boundary;
-    }
-
-    private static String hex(byte[] bytes) {
-        StringBuilder sb = new StringBuilder();
-        for (byte aByte : bytes) {
-            sb.append(hex.charAt(((int) aByte & 0xf0) >> 4)).append(hex.charAt((int) aByte & 0x0f));
-        }
-        return sb.toString();
-    }
-
     public void addBuiltinDirectory(String builtinDirectory) {
         contents.addLocalBuiltinDirectory(builtinDirectory);
     }
@@ -233,44 +141,44 @@ public class RpmBuilder {
         obsoletes.add(new Dependency(name, version, comparison));
     }
 
-    public void addObsoletesLess(CharSequence name, CharSequence version) {
+    public void addObsoletesLess(String name, String version) {
         int flag = Flags.LESS | Flags.EQUAL;
         addObsoletes(name, version, flag);
     }
 
-    public void addObsoletesMore(CharSequence name, CharSequence version) {
+    public void addObsoletesMore(String name, String version) {
         int flag = Flags.GREATER | Flags.EQUAL;
         addObsoletes(name, version, flag);
     }
 
-    public void addObsoletes(CharSequence name, CharSequence version, int flag) {
-        obsoletes.add(new Dependency(name.toString(), version.toString(), flag));
+    public void addObsoletes(String name, String version, int flag) {
+        obsoletes.add(new Dependency(name, version, flag));
     }
 
     public void addConflicts(String name, int comparison, String version) {
         conflicts.add(new Dependency(name, version, comparison));
     }
 
-    public void addConflictsLess(CharSequence name, CharSequence version) {
+    public void addConflictsLess(String name, String version) {
         int flag = Flags.LESS | Flags.EQUAL;
         addConflicts(name, version, flag);
     }
 
-    public void addConflictsMore(CharSequence name, CharSequence version) {
+    public void addConflictsMore(String name, String version) {
         int flag = Flags.GREATER | Flags.EQUAL;
         addConflicts(name, version, flag);
     }
 
-    public void addConflicts(CharSequence name, CharSequence version, int flag) {
-        conflicts.add(new Dependency(name.toString(), version.toString(), flag));
+    public void addConflicts(String name, String version, int flag) {
+        conflicts.add(new Dependency(name, version, flag));
     }
 
     public void addProvides(String name, String version) {
         provides.put(name, new Dependency(name, version, version.length() > 0 ? Flags.EQUAL : 0));
     }
 
-    public void addProvides(CharSequence name, CharSequence version, int flag) {
-        provides.put(name.toString(), new Dependency(name.toString(), version.toString(), flag));
+    public void addProvides(String name, int flag, String version) {
+        provides.put(name, new Dependency(name, version, flag));
     }
 
     /**
@@ -279,11 +187,11 @@ public class RpmBuilder {
      * install time.
      *
      * @param name       the name of the dependency
-     * @param comparison the comparison flag
+     * @param flags the comparison flag
      * @param version    the version identifier
      */
-    public void addDependency(String name, int comparison, String version) {
-        requires.add(new Dependency(name, version, comparison));
+    public void addDependency(String name, int flags, String version) {
+        requires.add(new Dependency(name, version, flags));
     }
 
     /**
@@ -294,12 +202,12 @@ public class RpmBuilder {
      * @param name    the name of the dependency
      * @param version the version identifier
      */
-    public void addDependencyLess(CharSequence name, CharSequence version) {
+    public void addDependencyLess(String name, String version) {
         int flag = Flags.LESS | Flags.EQUAL;
-        if (name.toString().startsWith("rpmlib(")) {
+        if (name.startsWith("rpmlib(")) {
             flag = flag | Flags.RPMLIB;
         }
-        addDependency(name, version, flag);
+        addDependency(name, flag, version);
     }
 
     /**
@@ -310,21 +218,12 @@ public class RpmBuilder {
      * @param name    the name of the dependency.
      * @param version the version identifier.
      */
-    public void addDependencyMore(CharSequence name, CharSequence version) {
-        addDependency(name, version, Flags.GREATER | Flags.EQUAL);
-    }
-
-    /**
-     * Adds a dependency to the RPM package. This dependency version will be marked as the exact
-     * requirement, and the package will require the named dependency with exactly this version at
-     * install time.
-     *
-     * @param name    the name of the dependency.
-     * @param version the version identifier.
-     * @param flag    the file flags
-     */
-    public void addDependency(CharSequence name, CharSequence version, int flag) {
-        requires.add(new Dependency(name.toString(), version.toString(), flag));
+    public void addDependencyMore(String name, String version) {
+        int flag = Flags.GREATER | Flags.EQUAL;
+        if (name.startsWith("rpmlib(")) {
+            flag = flag | Flags.RPMLIB;
+        }
+        addDependency(name, flag, version);
     }
 
     /**
@@ -368,7 +267,7 @@ public class RpmBuilder {
      * @throws ClassCastException - if the type required by tag.type() is not short[]
      */
     public void addHeaderEntry(EntryType entryType, short value) {
-        format.getHeader().createEntry(entryType, new short[]{value});
+        format.getHeader().createEntry(entryType, ShortList.of(value));
     }
 
     /**
@@ -376,10 +275,10 @@ public class RpmBuilder {
      *
      * @param entryType  the header tag to set
      * @param value the value to set the header entry with
-     * @throws ClassCastException if the type required by tag.type() is not Integer[]
+     * @throws ClassCastException if the type required by tag.type() is not IntegerList
      */
     public void addHeaderEntry(EntryType entryType, Integer value) {
-        format.getHeader().createEntry(entryType, new Integer[]{value});
+        format.getHeader().createEntry(entryType, IntegerList.of(value));
     }
 
     /**
@@ -387,10 +286,10 @@ public class RpmBuilder {
      *
      * @param entryType   the header tag to set
      * @param value the value to set the header entry with
-     * @throws ClassCastException - if the type required by tag.type() is not long[]
+     * @throws ClassCastException - if the type required by tag.type() is not LongList
      */
     public void addHeaderEntry(EntryType entryType, long value) {
-        format.getHeader().createEntry(entryType, new long[]{value});
+        format.getHeader().createEntry(entryType, LongList.of(value));
     }
 
     /**
@@ -409,9 +308,9 @@ public class RpmBuilder {
      *
      * @param entryType   the header tag to set
      * @param value the value to set the header entry with
-     * @throws ClassCastException - if the type required by tag.type() is not short[]
+     * @throws ClassCastException - if the type required by tag.type() is not ShortList
      */
-    public void addHeaderEntry(EntryType entryType, short[] value) {
+    public void addHeaderEntry(EntryType entryType, ShortList value) {
         format.getHeader().createEntry(entryType, value);
     }
 
@@ -420,9 +319,9 @@ public class RpmBuilder {
      *
      * @param entryType   the header tag to set
      * @param value the value to set the header entry with
-     * @throws ClassCastException - if the type required by tag.type() is not int[]
+     * @throws ClassCastException - if the type required by tag.type() is not IntegerList
      */
-    public void addHeaderEntry(EntryType entryType, Integer[] value) {
+    public void addHeaderEntry(EntryType entryType, IntegerList value) {
         format.getHeader().createEntry(entryType, value);
     }
 
@@ -431,9 +330,9 @@ public class RpmBuilder {
      *
      * @param entryType   the header tag to set
      * @param value the value to set the header entry with
-     * @throws ClassCastException - if the type required by tag.type() is not long[]
+     * @throws ClassCastException - if the type required by tag.type() is not LongList
      */
-    public void addHeaderEntry(EntryType entryType, long[] value) {
+    public void addHeaderEntry(EntryType entryType, LongList value) {
         format.getHeader().createEntry(entryType, value);
     }
 
@@ -443,7 +342,7 @@ public class RpmBuilder {
      * @param variableName the name to include in IllegalArgumentException
      * @throws IllegalArgumentException if passed in character sequence contains dashes.
      */
-    private void checkVariableContainsIllegalChars(char[] illegalChars, CharSequence variable, String variableName) {
+    private void checkVariableContainsIllegalChars(char[] illegalChars, String variable, String variableName) {
         if (variable != null) {
             for (int i = 0; i < variable.length(); i++) {
                 char currChar = variable.charAt(i);
@@ -467,7 +366,7 @@ public class RpmBuilder {
      * @throws IllegalArgumentException if version or release contain
      *                                  dashes, as they are explicitly disallowed by RPM file format.
      */
-    public void setPackage(CharSequence name, CharSequence version, CharSequence release, Integer epoch) {
+    public void setPackage(String name, String version, String release, Integer epoch) {
         checkVariableContainsIllegalChars(ILLEGAL_CHARS_NAME, name, "name");
         checkVariableContainsIllegalChars(ILLEGAL_CHARS_VARIABLE, version, "version");
         checkVariableContainsIllegalChars(ILLEGAL_CHARS_VARIABLE, release, "release");
@@ -480,7 +379,7 @@ public class RpmBuilder {
         addProvides(String.valueOf(name), "" + epoch + ":" + version + "-" + release);
     }
 
-    public void setPackage(CharSequence name, CharSequence version, CharSequence release) {
+    public void setPackage(String name, String version, String release) {
         setPackage(name, version, release, 0);
     }
 
@@ -503,8 +402,8 @@ public class RpmBuilder {
     public void setPlatform(Architecture arch, Os os) {
         format.getLead().setArch(arch);
         format.getLead().setOs(os);
-        CharSequence archName = arch.toString().toLowerCase();
-        CharSequence osName = os.toString().toLowerCase();
+        String archName = arch.toString().toLowerCase();
+        String osName = os.toString().toLowerCase();
         format.getHeader().createEntry(HeaderTag.ARCH, archName);
         format.getHeader().createEntry(HeaderTag.OS, osName);
         format.getHeader().createEntry(HeaderTag.PLATFORM, archName + "-" + osName);
@@ -518,10 +417,10 @@ public class RpmBuilder {
      * @param arch   the target architecture.
      * @param osName the non-standard target operating system.
      */
-    public void setPlatform(Architecture arch, CharSequence osName) {
+    public void setPlatform(Architecture arch, String osName) {
         format.getLead().setArch(arch);
         format.getLead().setOs(Os.UNKNOWN);
-        CharSequence archName = arch.toString().toLowerCase();
+        String archName = arch.toString().toLowerCase();
         format.getHeader().createEntry(HeaderTag.ARCH, archName);
         format.getHeader().createEntry(HeaderTag.OS, osName);
         format.getHeader().createEntry(HeaderTag.PLATFORM, archName + "-" + osName);
@@ -534,7 +433,7 @@ public class RpmBuilder {
      *
      * @param summary summary text.
      */
-    public void setSummary(CharSequence summary) {
+    public void setSummary(String summary) {
         if (summary != null) {
             format.getHeader().createEntry(HeaderTag.SUMMARY, summary);
         }
@@ -546,7 +445,7 @@ public class RpmBuilder {
      *
      * @param description description text.
      */
-    public void setDescription(CharSequence description) {
+    public void setDescription(String description) {
         if (description != null) {
             format.getHeader().createEntry(HeaderTag.DESCRIPTION, description);
         }
@@ -557,7 +456,7 @@ public class RpmBuilder {
      *
      * @param host hostname of the build machine.
      */
-    public void setBuildHost(CharSequence host) {
+    public void setBuildHost(String host) {
         if (host != null) {
             format.getHeader().createEntry(HeaderTag.BUILDHOST, host);
         }
@@ -569,7 +468,7 @@ public class RpmBuilder {
      *
      * @param license the chosen distribution license.
      */
-    public void setLicense(CharSequence license) {
+    public void setLicense(String license) {
         if (license != null) {
             format.getHeader().createEntry(HeaderTag.LICENSE, license);
         }
@@ -581,7 +480,7 @@ public class RpmBuilder {
      *
      * @param group target group.
      */
-    public void setGroup(CharSequence group) {
+    public void setGroup(String group) {
         if (group != null) {
             format.getHeader().createEntry(HeaderTag.GROUP, group);
         }
@@ -592,7 +491,7 @@ public class RpmBuilder {
      *
      * @param distribution the distribution.
      */
-    public void setDistribution(CharSequence distribution) {
+    public void setDistribution(String distribution) {
         if (distribution != null) {
             format.getHeader().createEntry(HeaderTag.DISTRIBUTION, distribution);
         }
@@ -603,7 +502,7 @@ public class RpmBuilder {
      *
      * @param vendor software vendor.
      */
-    public void setVendor(CharSequence vendor) {
+    public void setVendor(String vendor) {
         if (vendor != null) {
             format.getHeader().createEntry(HeaderTag.VENDOR, vendor);
         }
@@ -614,7 +513,7 @@ public class RpmBuilder {
      *
      * @param packager packager name.
      */
-    public void setPackager(CharSequence packager) {
+    public void setPackager(String packager) {
         if (packager != null) {
             format.getHeader().createEntry(HeaderTag.PACKAGER, packager);
         }
@@ -625,7 +524,7 @@ public class RpmBuilder {
      *
      * @param url the URL
      */
-    public void setUrl(CharSequence url) {
+    public void setUrl(String url) {
         if (url != null) {
             format.getHeader().createEntry(HeaderTag.URL, url);
         }
@@ -640,10 +539,10 @@ public class RpmBuilder {
      *
      * @param provides dependency provided by this package.
      */
-    public void setProvides(CharSequence provides) {
+    public void setProvides(String provides) {
         if (provides != null) {
             this.provides.clear();
-            addProvides(provides, "", Flags.EQUAL);
+            addProvides(provides, Flags.EQUAL, "");
         }
     }
 
@@ -658,6 +557,11 @@ public class RpmBuilder {
         this.contents = contents;
     }
 
+    /**
+     * Get the contents.
+     *
+     * @return the contents
+     */
     public Contents getContents() {
         return contents;
     }
@@ -665,11 +569,11 @@ public class RpmBuilder {
     /**
      * Adds a source rpm.
      *
-     * @param rpm name of rpm source file
+     * @param sourceRpm name of rpm source file
      */
-    public void setSourceRpm(String rpm) {
-        if (rpm != null) {
-            format.getHeader().createEntry(HeaderTag.SOURCERPM, rpm);
+    public void setSourceRpm(String sourceRpm) {
+        if (sourceRpm != null && !sourceRpm.isEmpty()) {
+            format.getHeader().createEntry(HeaderTag.SOURCERPM, sourceRpm);
         }
     }
 
@@ -679,22 +583,10 @@ public class RpmBuilder {
      *
      * @param prefixes Path prefixes which may be relocated
      */
-    public void setPrefixes(String... prefixes) {
-        if (prefixes != null && 0 < prefixes.length) {
-            format.getHeader().createEntry(HeaderTag.PREFIXES, prefixes);
+    public void setPrefixes(List<String> prefixes) {
+        if (prefixes != null && !prefixes.isEmpty()) {
+            format.getHeader().createEntry(HeaderTag.PREFIXES, new StringList(prefixes));
         }
-    }
-
-    /**
-     * Declares a script file to be run as part of the RPM pre-transaction. The
-     * script will be run using the interpreter declared with the
-     * {@link #setPreTransProgram(String)} method.
-     *
-     * @param path Script to run (i.e. shell commands)
-     * @throws IOException there was an IO error
-     */
-    public void setPreTrans(String path) throws IOException {
-        setPreTrans(Paths.get(path));
     }
 
     /**
@@ -706,7 +598,7 @@ public class RpmBuilder {
      * @throws IOException there was an IO error
      */
     public void setPreTrans(Path path) throws IOException {
-        setPreTransValue(readScript(path));
+        setPreTrans(readScript(path));
     }
 
     /**
@@ -716,7 +608,7 @@ public class RpmBuilder {
      *
      * @param content Script contents to run (i.e. shell commands)
      */
-    public void setPreTransValue(String content) {
+    public void setPreTrans(String content) {
         setPreTransProgram(readProgram(content));
         if (content != null) {
             format.getHeader().createEntry(HeaderTag.PRETRANSSCRIPT, content);
@@ -726,7 +618,7 @@ public class RpmBuilder {
     /**
      * Declares the interpreter to be used when invoking the RPM
      * pre-transaction script that can be set with the
-     * {@link #setPreTransValue(String)} method.
+     * {@link #setPreTrans(String)} method.
      *
      * @param program Path to the interpreter
      */
@@ -748,20 +640,8 @@ public class RpmBuilder {
      * @param path Script to run (i.e. shell commands)
      * @throws IOException there was an IO error
      */
-    public void setPreInstall(String path) throws IOException {
-        setPreInstall(Paths.get(path));
-    }
-
-    /**
-     * Declares a script file to be run as part of the RPM pre-installation. The
-     * script will be run using the interpreter declared with the
-     * {@link #setPreInstallProgram(String)} method.
-     *
-     * @param path Script to run (i.e. shell commands)
-     * @throws IOException there was an IO error
-     */
     public void setPreInstall(Path path) throws IOException {
-        setPreInstallValue(readScript(path));
+        setPreInstall(readScript(path));
     }
 
     /**
@@ -771,9 +651,9 @@ public class RpmBuilder {
      *
      * @param content Script contents to run (i.e. shell commands)
      */
-    public void setPreInstallValue(String content) {
+    public void setPreInstall(String content) {
         setPreInstallProgram(readProgram(content));
-        if (content != null) {
+        if (content != null && !content.isEmpty()) {
             format.getHeader().createEntry(HeaderTag.PREINSCRIPT, content);
         }
     }
@@ -781,31 +661,16 @@ public class RpmBuilder {
     /**
      * Declares the interpreter to be used when invoking the RPM
      * pre-installation script that can be set with the
-     * {@link #setPreInstallValue(String)} method.
+     * {@link #setPreInstall(String)} method.
      *
      * @param program Path to the interpretter
      */
     public void setPreInstallProgram(String program) {
-        if (program == null) {
-            format.getHeader().createEntry(HeaderTag.PREINPROG, DEFAULTSCRIPTPROG);
-        } else if (0 == program.length()) {
+        if (program == null || program.length() == 0) {
             format.getHeader().createEntry(HeaderTag.PREINPROG, DEFAULTSCRIPTPROG);
         } else {
             format.getHeader().createEntry(HeaderTag.PREINPROG, program);
         }
-    }
-
-
-    /**
-     * Declares a script file to be run as part of the RPM post-installation. The
-     * script will be run using the interpreter declared with the
-     * {@link #setPostInstallProgram(String)} method.
-     *
-     * @param path Script to run (i.e. shell commands)
-     * @throws IOException there was an IO error
-     */
-    public void setPostInstall(String path) throws IOException {
-        setPostInstall(Paths.get(path));
     }
 
     /**
@@ -817,7 +682,7 @@ public class RpmBuilder {
      * @throws IOException there was an IO error
      */
     public void setPostInstall(Path path) throws IOException {
-        setPostInstallValue(readScript(path));
+        setPostInstall(readScript(path));
     }
 
     /**
@@ -827,9 +692,9 @@ public class RpmBuilder {
      *
      * @param script Script contents to run (i.e. shell commands)
      */
-    public void setPostInstallValue(String script) {
+    public void setPostInstall(String script) {
         setPostInstallProgram(readProgram(script));
-        if (script != null) {
+        if (script != null && !script.isEmpty()) {
             format.getHeader().createEntry(HeaderTag.POSTINSCRIPT, script);
         }
     }
@@ -837,7 +702,7 @@ public class RpmBuilder {
     /**
      * Declares the interpreter to be used when invoking the RPM
      * post-installation script that can be set with the
-     * {@link #setPostInstallValue(String)} method.
+     * {@link #setPostInstall(String)} method.
      *
      * @param program Path to the interpreter
      */
@@ -859,20 +724,8 @@ public class RpmBuilder {
      * @param path Script to run (i.e. shell commands)
      * @throws IOException there was an IO error
      */
-    public void setPreUninstall(String path) throws IOException {
-        setPreUninstall(Paths.get(path));
-    }
-
-    /**
-     * Declares a script file to be run as part of the RPM pre-uninstallation. The
-     * script will be run using the interpreter declared with the
-     * {@link #setPreUninstallProgram(String)} method.
-     *
-     * @param path Script to run (i.e. shell commands)
-     * @throws IOException there was an IO error
-     */
     public void setPreUninstall(Path path) throws IOException {
-        setPreUninstallValue(readScript(path));
+        setPreUninstall(readScript(path));
     }
 
     /**
@@ -882,9 +735,9 @@ public class RpmBuilder {
      *
      * @param script Script contents to run (i.e. shell commands)
      */
-    public void setPreUninstallValue(String script) {
-        setPreUninstallProgram(readProgram(script));
-        if (script != null) {
+    public void setPreUninstall(String script) {
+        if (script != null && !script.isEmpty()) {
+            setPreUninstallProgram(readProgram(script));
             format.getHeader().createEntry(HeaderTag.PREUNSCRIPT, script);
         }
     }
@@ -892,31 +745,16 @@ public class RpmBuilder {
     /**
      * Declares the interpreter to be used when invoking the RPM
      * pre-uninstallation script that can be set with the
-     * {@link #setPreUninstallValue(String)} method.
+     * {@link #setPreUninstall(String)} method.
      *
      * @param program Path to the interpreter
      */
     public void setPreUninstallProgram(String program) {
-        if (program == null) {
-            format.getHeader().createEntry(HeaderTag.PREUNPROG, DEFAULTSCRIPTPROG);
-        } else if (0 == program.length()) {
+        if (program == null || program.length() == 0) {
             format.getHeader().createEntry(HeaderTag.PREUNPROG, DEFAULTSCRIPTPROG);
         } else {
             format.getHeader().createEntry(HeaderTag.PREUNPROG, program);
         }
-    }
-
-
-    /**
-     * Declares a script file to be run as part of the RPM post-uninstallation. The
-     * script will be run using the interpreter declared with the
-     * {@link #setPostUninstallProgram(String)} method.
-     *
-     * @param path Script contents to run (i.e. shell commands)
-     * @throws IOException there was an IO error
-     */
-    public void setPostUninstall(String path) throws IOException {
-        setPostUninstall(Paths.get(path));
     }
 
     /**
@@ -928,7 +766,7 @@ public class RpmBuilder {
      * @throws IOException there was an IO error
      */
     public void setPostUninstall(Path path) throws IOException {
-        setPostUninstallValue(readScript(path));
+        setPostUninstall(readScript(path));
     }
 
     /**
@@ -938,7 +776,7 @@ public class RpmBuilder {
      *
      * @param content Script contents to run (i.e. shell commands)
      */
-    public void setPostUninstallValue(String content) {
+    public void setPostUninstall(String content) {
         setPostUninstallProgram(readProgram(content));
         if (content != null) {
             format.getHeader().createEntry(HeaderTag.POSTUNSCRIPT, content);
@@ -948,7 +786,7 @@ public class RpmBuilder {
     /**
      * Declares the interpreter to be used when invoking the RPM
      * post-uninstallation script that can be set with the
-     * {@link #setPostUninstallValue(String)} method.
+     * {@link #setPostUninstall(String)} method.
      *
      * @param program Path to the interpreter
      */
@@ -970,20 +808,8 @@ public class RpmBuilder {
      * @param path Script contents to run (i.e. shell commands)
      * @throws IOException there was an IO error
      */
-    public void setPostTrans(String path) throws IOException {
-        setPostTrans(Paths.get(path));
-    }
-
-    /**
-     * Declares a script file to be run as part of the RPM post-transaction. The
-     * script will be run using the interpreter declared with the
-     * {@link #setPostTransProgram(String)} method.
-     *
-     * @param path Script contents to run (i.e. shell commands)
-     * @throws IOException there was an IO error
-     */
     public void setPostTrans(Path path) throws IOException {
-        setPostTransValue(readScript(path));
+        setPostTrans(readScript(path));
     }
 
     /**
@@ -993,7 +819,7 @@ public class RpmBuilder {
      *
      * @param content Script contents to run (i.e. shell commands)
      */
-    public void setPostTransValue(String content) {
+    public void setPostTrans(String content) {
         setPostTransProgram(readProgram(content));
         if (content != null) {
             format.getHeader().createEntry(HeaderTag.POSTTRANSSCRIPT, content);
@@ -1003,14 +829,12 @@ public class RpmBuilder {
     /**
      * Declares the interpreter to be used when invoking the RPM
      * post-transaction script that can be set with the
-     * {@link #setPostTransValue(String)} method.
+     * {@link #setPostTrans(String)} method.
      *
      * @param program Path to the interpreter
      */
     public void setPostTransProgram(String program) {
-        if (program == null) {
-            format.getHeader().createEntry(HeaderTag.POSTTRANSPROG, DEFAULTSCRIPTPROG);
-        } else if (0 == program.length()) {
+        if (program == null || program.length() == 0) {
             format.getHeader().createEntry(HeaderTag.POSTTRANSPROG, DEFAULTSCRIPTPROG);
         } else {
             format.getHeader().createEntry(HeaderTag.POSTTRANSPROG, program);
@@ -1051,89 +875,20 @@ public class RpmBuilder {
      * to record the directory names and file names, as well as their
      * digests.
      *
-     * @param path   the absolute path at which this file will be installed.
-     * @param source the path content to include in this rpm.
-     * @param mode   the mode of the target file in standard three octet notation
-     * @throws IOException              there was an IO error
-     */
-    public void addFile(String path, Path source, int mode) throws IOException {
-        contents.addFile(path, source, mode);
-    }
-
-    /**
-     * Add the specified file to the repository payload in order.
-     * The required header entries will automatically be generated
-     * to record the directory names and file names, as well as their
-     * digests.
-     *
-     * @param path    the absolute path at which this file will be installed.
-     * @param source  the file to include in this archive.
-     * @param mode    the mode of the target file in standard three octet notation
-     * @param dirmode the mode of the parent directories in standard three octet notation, or -1 for default.
-     * @throws IOException              there was an IO error
-     */
-    public void addFile(String path, Path source, int mode, int dirmode) throws IOException {
-        contents.addFile(path, source, mode, dirmode);
-    }
-
-    /**
-     * Add the specified file to the repository payload in order.
-     * The required header entries will automatically be generated
-     * to record the directory names and file names, as well as their
-     * digests.
-     *
-     * @param path    the absolute path at which this file will be installed.
-     * @param source  the file to include in this archive.
-     * @param mode    the mode of the target file in standard three octet notation
-     * @param dirmode the mode of the parent directories in standard three octet notation, or -1 for default.
-     * @param uname   user owner for the given file
-     * @param gname   group owner for the given file
-     * @throws IOException              there was an IO error
-     */
-    public void addFile(String path, Path source, int mode, int dirmode, String uname, String gname)
-            throws IOException {
-        contents.addFile(path, source, mode, null, uname, gname, dirmode);
-    }
-
-    /**
-     * Add the specified file to the repository payload in order.
-     * The required header entries will automatically be generated
-     * to record the directory names and file names, as well as their
-     * digests.
-     *
-     * @param path      the absolute path at which this file will be installed.
-     * @param source    the file to include in this rpm.
-     * @param mode      the mode of the target file in standard three octet notation
-     * @param dirmode   the mode of the parent directories in standard three octet notation, or -1 for default.
-     * @param directive directive indicating special handling for this file.
-     * @param uname     user owner for the given file
-     * @param gname     group owner for the given file
-     * @throws IOException              there was an IO error
-     */
-    public void addFile(String path, Path source, int mode, int dirmode, EnumSet<Directive> directive, String uname,
-                        String gname) throws IOException {
-        contents.addFile(path, source, mode, directive, uname, gname, dirmode);
-    }
-
-    /**
-     * Add the specified file to the repository payload in order.
-     * The required header entries will automatically be generated
-     * to record the directory names and file names, as well as their
-     * digests.
-     *
      * @param path       the absolute path at which this file will be installed.
      * @param source     the file to include in this rpm.
      * @param mode       the mode of the target file in standard three octet notation, or -1 for default.
      * @param dirmode    the mode of the parent directories in standard three octet notation, or -1 for default.
      * @param directive  directive indicating special handling for this file.
-     * @param uname      user owner for the given file, or null for default user.
-     * @param gname      group owner for the given file, or null for default group.
+     * @param uname       user owner of the file
+     * @param gname       group owner of the file
      * @param addParents whether to create parent directories for the file, defaults to true for other methods.
      * @throws IOException              there was an IO error
      */
-    public void addFile(String path, Path source, int mode, int dirmode, EnumSet<Directive> directive, String uname,
-                        String gname, boolean addParents) throws IOException {
-        contents.addFile(path, source, mode, directive, uname, gname, dirmode, addParents);
+    public void addFile(String path, Path source, int mode, int dirmode,
+                        EnumSet<Directive> directive,
+                        String uname, String gname, boolean addParents) throws IOException {
+        addFile(path, source, mode, dirmode, directive, uname, gname, addParents, -1);
     }
 
     /**
@@ -1147,143 +902,16 @@ public class RpmBuilder {
      * @param mode        the mode of the target file in standard three octet notation, or -1 for default.
      * @param dirmode     the mode of the parent directories in standard three octet notation, or -1 for default.
      * @param directive   directive indicating special handling for this file.
-     * @param uname       user owner for the given file, or null for default user.
-     * @param gname       group owner for the given file, or null for default group.
-     * @param addParents  whether to create parent directories for the file, defaults to true for other methods.
-     * @param verifyFlags verify flags
-     * @throws IOException              there was an IO error
-     */
-    public void addFile(String path, Path source, int mode, int dirmode, EnumSet<Directive> directive, String uname,
-                        String gname, boolean addParents, int verifyFlags) throws IOException {
-        contents.addFile(path, source, mode, directive, uname, gname, dirmode, addParents, verifyFlags);
-    }
-
-    /**
-     * Add the specified file to the repository payload in order.
-     * The required header entries will automatically be generated
-     * to record the directory names and file names, as well as their
-     * digests.
-     *
-     * @param path      the absolute path at which this file will be installed.
-     * @param source    the file to include in this rpm.
-     * @param mode      the mode of the target file in standard three octet notation
-     * @param directive directive indicating special handling for this file.
-     * @param uname     user owner for the given file
-     * @param gname     group owner for the given file
-     * @throws IOException              there was an IO error
-     */
-    public void addFile(String path, Path source, int mode, EnumSet<Directive> directive, String uname, String gname)
-            throws IOException {
-        contents.addFile(path, source, mode, directive, uname, gname);
-    }
-
-    /**
-     * Add the specified file to the repository payload in order.
-     * The required header entries will automatically be generated
-     * to record the directory names and file names, as well as their
-     * digests.
-     *
-     * @param path      the absolute path at which this file will be installed.
-     * @param source    the file content to include in this rpm.
-     * @param mode      the mode of the target file in standard three octet notation
-     * @param directive directive indicating special handling for this file.
-     * @throws IOException              there was an IO error
-     */
-    public void addFile(String path, Path source, int mode, EnumSet<Directive> directive)
-            throws IOException {
-        contents.addFile(path, source, mode, directive);
-    }
-
-    /**
-     * Adds the file to the repository with the default mode of <code>644</code>.
-     *
-     * @param path   the absolute path at which this file will be installed.
-     * @param source the file content to include in this archive.
-     * @throws IOException              there was an IO error
-     */
-    public void addFile(String path, Path source)
-            throws IOException {
-        contents.addFile(path, source);
-    }
-
-    /**
-     * Add the specified file to the repository payload in order by URL.
-     * The required header entries will automatically be generated
-     * to record the directory names and file names, as well as their
-     * digests.
-     *
-     * @param path    the absolute path at which this file will be installed.
-     * @param source  the file content to include in this rpm.
-     * @param mode    the mode of the target file in standard three octet notation
-     * @param dirmode the mode of the parent directories in standard three octet notation, or -1 for default.
-     * @throws IOException there was an IO error
-     */
-    public void addURL(String path, URL source, int mode, int dirmode) throws IOException {
-        contents.addURL(path, source, mode, null, null, null, dirmode);
-    }
-
-    /**
-     * Add the specified file to the repository payload in order by URL.
-     * The required header entries will automatically be generated
-     * to record the directory names and file names, as well as their
-     * digests.
-     *
-     * @param path     the absolute path at which this file will be installed.
-     * @param source   the file content to include in this rpm.
-     * @param mode     the mode of the target file in standard three octet notation
-     * @param dirmode  the mode of the parent directories in standard three octet notation, or -1 for default.
-     * @param username ownership of added file
-     * @param group    ownership of added file
-     * @throws IOException              there was an IO error
-     */
-    public void addURL(String path, URL source, int mode, int dirmode, String username, String group)
-            throws IOException {
-        contents.addURL(path, source, mode, null, username, group, dirmode);
-    }
-
-    /**
-     * Add the specified file to the repository payload in order by URL.
-     * The required header entries will automatically be generated
-     * to record the directory names and file names, as well as their
-     * digests.
-     *
-     * @param path       the absolute path at which this file will be installed.
-     * @param source     the file content to include in this rpm.
-     * @param mode       the mode of the target file in standard three octet notation
-     * @param dirmode    the mode of the parent directories in standard three octet notation, or -1 for default.
-     * @param directives directive indicating special handling for this file.
-     * @param username   ownership of added file
-     * @param group      ownership of added file
-     * @throws IOException              there was an IO error
-     */
-    public void addURL(String path, URL source, int mode, int dirmode, EnumSet<Directive> directives, String username,
-                       String group) throws IOException {
-        contents.addURL(path, source, mode, directives, username, group, dirmode);
-    }
-
-    /**
-     * Adds the directory to the repository with the default mode of <code>644</code>.
-     *
-     * @param path the absolute path to add as a directory.
-     * @throws IOException              there was an IO error
-     */
-    public void addDirectory(String path) throws IOException {
-        contents.addDirectory(path);
-    }
-
-    /**
-     * Adds the directory to the repository.
-     *
-     * @param path        the absolute path to add as a directory.
-     * @param permissions the mode of the directory in standard three octet notation.
-     * @param directives  directive indicating special handling for this file.
      * @param uname       user owner of the directory
      * @param gname       group owner of the directory
-     * @throws IOException              there was an IO error
+     * @param addParents  whether to create parent directories for the file, defaults to true for other methods.
+     * @param verifyFlags verify flags
+     * @throws IOException there was an IO error
      */
-    public void addDirectory(String path, int permissions, EnumSet<Directive> directives, String uname, String gname)
-            throws IOException {
-        contents.addDirectory(path, permissions, directives, uname, gname);
+    public void addFile(String path, Path source, int mode, int dirmode,
+                        EnumSet<Directive> directive,
+                        String uname, String gname, boolean addParents, int verifyFlags) throws IOException {
+        contents.addFile(path, source, mode, dirmode, directive, uname, gname, -1, -1, addParents, verifyFlags);
     }
 
     /**
@@ -1295,33 +923,28 @@ public class RpmBuilder {
      * @param uname       user owner of the directory
      * @param gname       group owner of the directory
      * @param addParents  whether to add parent directories to the rpm
-     * @throws IOException              there was an IO error
      */
-    public void addDirectory(String path, int permissions, EnumSet<Directive> directives, String uname, String gname,
-                             boolean addParents) throws IOException {
-        contents.addDirectory(path, permissions, directives, uname, gname, addParents);
+    public void addDirectory(String path, int permissions, EnumSet<Directive> directives,
+                             String uname, String gname,
+                             boolean addParents) {
+        contents.addDirectory(path, permissions, directives, uname, gname,-1, -1, addParents);
     }
 
     /**
-     * Adds the directory to the repository with the default mode of <code>644</code>.
+     * Adds an URL (from a jar) to the repository.
      *
-     * @param path      the absolute path to add as a directory.
-     * @param directive directive indicating special handling for this file.
-     * @throws IOException              there was an IO error
+     * @param path the absolute path
+     * @param source the URL source
+     * @param permissions the file mode
+     * @param dirmode the directory mode
+     * @param directives directives indicating special handling for this file
+     * @param uname user owner of the entry
+     * @param gname group owner of the entry
      */
-    public void addDirectory(String path, EnumSet<Directive> directive) throws IOException {
-        contents.addDirectory(path, directive);
-    }
-
-    /**
-     * Adds a symbolic link to the repository.
-     *
-     * @param path   the absolute path at which this link will be installed.
-     * @param target the path of the file this link will point to.
-     * @throws IOException              there was an IO error
-     */
-    public void addLink(String path, String target) throws IOException {
-        contents.addLink(path, target);
+    public void addURL(String path, URL source, int permissions, int dirmode,
+                       EnumSet<Directive> directives,
+                       String uname, String gname) {
+        contents.addURL(path, source, permissions, directives, uname, gname, -1, -1, dirmode);
     }
 
     /**
@@ -1330,11 +953,9 @@ public class RpmBuilder {
      * @param path        the absolute path at which this link will be installed.
      * @param target      the path of the file this link will point to.
      * @param permissions the permissions flags
-     * @throws IOException              there was an IO error
      */
-    public void addLink(String path, String target, int permissions)
-            throws IOException {
-        contents.addLink(path, target, permissions);
+    public void addLink(String path, String target, int permissions) {
+        addLink(path, target, permissions, null, null);
     }
 
     /**
@@ -1345,22 +966,23 @@ public class RpmBuilder {
      * @param permissions the permissions flags
      * @param username    user owner of the link
      * @param groupname   group owner of the link
-     * @throws IOException              there was an IO error
      */
-    public void addLink(String path, String target, int permissions, String username, String groupname)
-            throws IOException {
-        contents.addLink(path, target, permissions, username, groupname);
+    public void addLink(String path, String target, int permissions,
+                        String username, String groupname) {
+        contents.addLink(path, target, permissions, username, groupname, -1, -1, true);
     }
 
     /**
      * Adds the supplied Changelog path as a Changelog to the header.
      *
-     * @param changelogFile File containing the Changelog information
+     * @param changelogContents File containing the Changelog information
      * @throws IOException             if file does not exist or cannot be read
      * @throws ChangelogParseException if file is not of the correct format.
      */
-    public void addChangelog(String changelogFile) throws IOException, ChangelogParseException {
-        new ChangelogHandler(format.getHeader()).addChangeLog(Paths.get(changelogFile));
+    public void addChangelog(String changelogContents) throws IOException, ChangelogParseException {
+        if (changelogContents != null) {
+            new ChangelogHandler(format.getHeader()).addChangeLog(changelogContents);
+        }
     }
 
     /**
@@ -1371,29 +993,23 @@ public class RpmBuilder {
      * @throws ChangelogParseException if file is not of the correct format.
      */
     public void addChangelog(Path changelogFile) throws IOException, ChangelogParseException {
-        new ChangelogHandler(format.getHeader()).addChangeLog(changelogFile);
+        if (changelogFile != null) {
+            new ChangelogHandler(format.getHeader()).addChangeLog(changelogFile);
+        }
     }
 
     /**
      * Adds the supplied Changelog file as a Changelog to the header.
      *
-     * @param changelogFile URL containing the Changelog information
+     * @param changelogInputStream input stream containing the Changelog information
      * @throws IOException             if file does not exist or cannot be read
      * @throws ChangelogParseException if file is not of the correct format.
      */
-    public void addChangelog(URL changelogFile) throws IOException, ChangelogParseException {
-        new ChangelogHandler(format.getHeader()).addChangeLog(changelogFile);
-    }
-
-    /**
-     * Adds the supplied Changelog file as a Changelog to the header.
-     *
-     * @param changelogFile URL containing the Changelog information
-     * @throws IOException             if file does not exist or cannot be read
-     * @throws ChangelogParseException if file is not of the correct format.
-     */
-    public void addChangelog(InputStream changelogFile) throws IOException, ChangelogParseException {
-        new ChangelogHandler(format.getHeader()).addChangeLog(changelogFile);
+    public void addChangelog(InputStream changelogInputStream) throws IOException, ChangelogParseException {
+        if (changelogInputStream != null) {
+            new ChangelogHandler(format.getHeader())
+                    .addChangeLog(new InputStreamReader(changelogInputStream, StandardCharsets.UTF_8));
+        }
     }
 
     /**
@@ -1403,7 +1019,9 @@ public class RpmBuilder {
      * @throws IOException             if file does not exist or cannot be read
      */
     public void setPrivateKeyRing(String privateKeyRing) throws IOException {
-        setPrivateKeyRing(Paths.get(privateKeyRing));
+        if (privateKeyRing != null) {
+            setPrivateKeyRing(Paths.get(privateKeyRing));
+        }
     }
 
     /**
@@ -1413,7 +1031,10 @@ public class RpmBuilder {
      * @throws IOException             if file does not exist or cannot be read
      */
     public void setPrivateKeyRing(Path privateKeyRing) throws IOException {
-        setPrivateKeyRing(Files.newInputStream(privateKeyRing));
+        if (privateKeyRing != null && Files.exists(privateKeyRing)) {
+            // will be closed in the SignatureGeneratur
+            setPrivateKeyRing(Files.newInputStream(privateKeyRing));
+        }
     }
 
     /**
@@ -1422,7 +1043,9 @@ public class RpmBuilder {
      * @param privateKeyRing the private key ring input stream
      */
     public void setPrivateKeyRing(InputStream privateKeyRing) {
-        this.privateKeyRing = privateKeyRing;
+        if (privateKeyRing != null) {
+            this.privateKeyRing = privateKeyRing;
+        }
     }
 
     /**
@@ -1432,7 +1055,9 @@ public class RpmBuilder {
      * @param privateKeyId long value from hex key id
      */
     public void setPrivateKeyId(String privateKeyId) {
-        setPrivateKeyId(Long.decode("0x" + privateKeyId));
+        if (privateKeyId != null && !privateKeyId.isEmpty()) {
+            setPrivateKeyId(Long.decode("0x" + privateKeyId));
+        }
     }
 
     /**
@@ -1451,7 +1076,9 @@ public class RpmBuilder {
      * @param privateKeyPassphrase the private key pass phrase
      */
     public void setPrivateKeyPassphrase(String privateKeyPassphrase) {
-        this.privateKeyPassphrase = privateKeyPassphrase;
+        if (privateKeyPassphrase != null && !privateKeyPassphrase.isEmpty()) {
+            this.privateKeyPassphrase = privateKeyPassphrase;
+        }
     }
 
     /**
@@ -1460,7 +1087,7 @@ public class RpmBuilder {
      * @param privateKeyHashAlgo the private key hash algo
      */
     public void setPrivateKeyHashAlgo(String privateKeyHashAlgo) {
-        if (privateKeyHashAlgo != null) {
+        if (privateKeyHashAlgo != null && !privateKeyHashAlgo.isEmpty()) {
             this.privateKeyHashAlgo = HashAlgo.valueOf(privateKeyHashAlgo);
         }
     }
@@ -1512,23 +1139,23 @@ public class RpmBuilder {
     @SuppressWarnings("unchecked")
     public void build(SeekableByteChannel channel) throws RpmException, IOException {
         WritableChannelWrapper output = new WritableChannelWrapper(channel);
-        format.getHeader().createEntry(HeaderTag.REQUIRENAME, getArrayOfNames(requires));
-        format.getHeader().createEntry(HeaderTag.REQUIREVERSION, getArrayOfVersions(requires));
-        format.getHeader().createEntry(HeaderTag.REQUIREFLAGS, getArrayOfFlags(requires));
+        format.getHeader().createEntry(HeaderTag.REQUIRENAME, getStringList(requires));
+        format.getHeader().createEntry(HeaderTag.REQUIREVERSION, getVersions(requires));
+        format.getHeader().createEntry(HeaderTag.REQUIREFLAGS, getFlags(requires));
         if (obsoletes.size() > 0) {
-            format.getHeader().createEntry(HeaderTag.OBSOLETENAME, getArrayOfNames(obsoletes));
-            format.getHeader().createEntry(HeaderTag.OBSOLETEVERSION, getArrayOfVersions(obsoletes));
-            format.getHeader().createEntry(HeaderTag.OBSOLETEFLAGS, getArrayOfFlags(obsoletes));
+            format.getHeader().createEntry(HeaderTag.OBSOLETENAME, getStringList(obsoletes));
+            format.getHeader().createEntry(HeaderTag.OBSOLETEVERSION, getVersions(obsoletes));
+            format.getHeader().createEntry(HeaderTag.OBSOLETEFLAGS, getFlags(obsoletes));
         }
         if (conflicts.size() > 0) {
-            format.getHeader().createEntry(HeaderTag.CONFLICTNAME, getArrayOfNames(conflicts));
-            format.getHeader().createEntry(HeaderTag.CONFLICTVERSION, getArrayOfVersions(conflicts));
-            format.getHeader().createEntry(HeaderTag.CONFLICTFLAGS, getArrayOfFlags(conflicts));
+            format.getHeader().createEntry(HeaderTag.CONFLICTNAME, getStringList(conflicts));
+            format.getHeader().createEntry(HeaderTag.CONFLICTVERSION, getVersions(conflicts));
+            format.getHeader().createEntry(HeaderTag.CONFLICTFLAGS, getFlags(conflicts));
         }
         if (provides.size() > 0) {
-            format.getHeader().createEntry(HeaderTag.PROVIDENAME, getArrayOfNames(provides));
-            format.getHeader().createEntry(HeaderTag.PROVIDEVERSION, getArrayOfVersions(provides));
-            format.getHeader().createEntry(HeaderTag.PROVIDEFLAGS, getArrayOfFlags(provides));
+            format.getHeader().createEntry(HeaderTag.PROVIDENAME, getStringList(provides));
+            format.getHeader().createEntry(HeaderTag.PROVIDEVERSION, getVersions(provides));
+            format.getHeader().createEntry(HeaderTag.PROVIDEFLAGS, getFlags(provides));
         }
         format.getHeader().createEntry(HeaderTag.SIZE, contents.getTotalSize());
         if (contents.size() > 0) {
@@ -1538,17 +1165,17 @@ public class RpmBuilder {
         }
         if (triggerCounter > 0) {
             format.getHeader().createEntry(HeaderTag.TRIGGERSCRIPTS,
-                    triggerscripts.toArray(new String[triggerscripts.size()]));
+                    triggerscripts.toArray(new String[0]));
             format.getHeader().createEntry(HeaderTag.TRIGGERNAME,
-                    triggernames.toArray(new String[triggernames.size()]));
+                    triggernames.toArray(new String[0]));
             format.getHeader().createEntry(HeaderTag.TRIGGERVERSION,
-                    triggerversions.toArray(new String[triggerversions.size()]));
+                    triggerversions.toArray(new String[0]));
             format.getHeader().createEntry(HeaderTag.TRIGGERFLAGS,
-                    triggerflags.toArray(new Integer[triggerflags.size()]));
+                    triggerflags.toArray(new Integer[0]));
             format.getHeader().createEntry(HeaderTag.TRIGGERINDEX,
-                    triggerindexes.toArray(new Integer[triggerindexes.size()]));
+                    triggerindexes.toArray(new Integer[0]));
             format.getHeader().createEntry(HeaderTag.TRIGGERSCRIPTPROG,
-                    triggerscriptprogs.toArray(new String[triggerscriptprogs.size()]));
+                    triggerscriptprogs.toArray(new String[0]));
         }
         if (contents.size() > 0) {
             format.getHeader().createEntry(HeaderTag.FILEDIGESTALGOS, HashAlgo.MD5.num());
@@ -1568,16 +1195,15 @@ public class RpmBuilder {
             format.getHeader().createEntry(HeaderTag.FILECONTEXTS, contents.getContexts());
         }
         format.getHeader().createEntry(HeaderTag.PAYLOADFLAGS, "9");
-        SpecEntry<Integer[]> sigsize =
-                (SpecEntry<Integer[]>) format.getSignatureHeader().addEntry(SignatureTag.LEGACY_SIGSIZE, 1);
-        SpecEntry<Integer[]> signaturHeaderPayloadEntry =
-                (SpecEntry<Integer[]>) format.getSignatureHeader().addEntry(SignatureTag.PAYLOADSIZE, 1);
+        SpecEntry<IntegerList> sigsize =
+                (SpecEntry<IntegerList>) format.getSignatureHeader().addEntry(SignatureTag.LEGACY_SIGSIZE, 1);
+        SpecEntry<IntegerList> signaturHeaderPayloadEntry =
+                (SpecEntry<IntegerList>) format.getSignatureHeader().addEntry(SignatureTag.PAYLOADSIZE, 1);
         SpecEntry<byte[]> md5Entry =
                 (SpecEntry<byte[]>) format.getSignatureHeader().addEntry(SignatureTag.LEGACY_MD5, 16);
-        SpecEntry<String[]> shaEntry =
-                (SpecEntry<String[]>) format.getSignatureHeader().addEntry(SignatureTag.SHA1HEADER, 1);
+        SpecEntry<StringList> shaEntry =
+                (SpecEntry<StringList>) format.getSignatureHeader().addEntry(SignatureTag.SHA1HEADER, 1);
         shaEntry.setSize(SHASIZE);
-
         SignatureGenerator signatureGenerator = new SignatureGenerator(privateKeyRing, privateKeyId, privateKeyPassphrase);
         signatureGenerator.prepare(format.getSignatureHeader(), privateKeyHashAlgo);
         format.getLead().write(channel);
@@ -1585,7 +1211,6 @@ public class RpmBuilder {
                 (SpecEntry<byte[]>) format.getSignatureHeader().addEntry(SignatureTag.SIGNATURES, 16);
         signatureEntry.setValues(createHeaderIndex(HeaderTag.SIGNATURES.getCode(), format.getSignatureHeader().count()));
         ChannelWrapper.empty(output, ByteBuffer.allocate(format.getSignatureHeader().write(channel)));
-
         ChannelWrapper.Key<Integer> sigsizekey = output.start();
         ChannelWrapper.Key<byte[]> shakey = signatureGenerator.startDigest(output, "SHA");
         ChannelWrapper.Key<byte[]> md5key = signatureGenerator.startDigest(output, "MD5");
@@ -1597,7 +1222,7 @@ public class RpmBuilder {
                 (SpecEntry<byte[]>) format.getHeader().addEntry(HeaderTag.HEADERIMMUTABLE, 16);
         immutable.setValues(createHeaderIndex(HeaderTag.IMMUTABLE.getCode(), format.getHeader().count()));
         format.getHeader().write(output);
-        shaEntry.setValues(new String[]{hex(output.finish(shakey))});
+        shaEntry.setValues(StringList.of(hex(output.finish(shakey))));
         signatureGenerator.finishAfterHeader(output);
         OutputStream compressedOutputStream = createCompressedStream(Channels.newOutputStream(output));
         WritableChannelWrapper compressedOutput =
@@ -1617,24 +1242,32 @@ public class RpmBuilder {
             Object object = contents.getSource(header);
             if (object instanceof Path) {
                 try (ReadableByteChannel readableByteChannel = Files.newByteChannel((Path) object)) {
-                    while (readableByteChannel.read((ByteBuffer) buffer.rewind()) > 0) {
-                        total += compressedOutput.write((ByteBuffer) buffer.flip());
+                    while (readableByteChannel.read(buffer.rewind()) > 0) {
+                        total += compressedOutput.write(buffer.flip());
+                        buffer.compact();
+                    }
+                    total += header.skip(compressedOutput, total);
+                }
+            } else if (object instanceof InputStream) {
+                try (ReadableByteChannel in = Channels.newChannel(((InputStream) object))) {
+                    while (in.read(buffer.rewind()) > 0) {
+                        total += compressedOutput.write(buffer.flip());
                         buffer.compact();
                     }
                     total += header.skip(compressedOutput, total);
                 }
             } else if (object instanceof URL) {
                 try (ReadableByteChannel in = Channels.newChannel(((URL) object).openConnection().getInputStream())) {
-                    while (in.read((ByteBuffer) buffer.rewind()) > 0) {
-                        total += compressedOutput.write((ByteBuffer) buffer.flip());
+                    while (in.read(buffer.rewind()) > 0) {
+                        total += compressedOutput.write(buffer.flip());
                         buffer.compact();
                     }
                     total += header.skip(compressedOutput, total);
                 }
-            } else if (object instanceof CharSequence) {
-                CharSequence target = (CharSequence) object;
-                total += compressedOutput.write(ByteBuffer.wrap(String.valueOf(target).getBytes(StandardCharsets.UTF_8)));
-                total += header.skip(compressedOutput, target.length());
+            } else if (object != null) {
+                String string = object.toString();
+                total += compressedOutput.write(ByteBuffer.wrap(string.getBytes(StandardCharsets.UTF_8)));
+                total += header.skip(compressedOutput, string.length());
             }
         }
         CpioHeader trailer = new CpioHeader();
@@ -1645,11 +1278,11 @@ public class RpmBuilder {
         int pad = difference(length, 3);
         ChannelWrapper.empty(compressedOutput, ByteBuffer.allocate(pad));
         length += pad;
-        signaturHeaderPayloadEntry.setValues(new Integer[]{length});
+        signaturHeaderPayloadEntry.setValues(IntegerList.of(length));
         // flush compressed stream here
         compressedOutputStream.flush();
         md5Entry.setValues(output.finish(md5key));
-        sigsize.setValues(new Integer[]{output.finish(sigsizekey)});
+        sigsize.setValues(IntegerList.of(output.finish(sigsizekey)));
         signatureGenerator.finishAfterPayload(output);
         format.getSignatureHeader().writePending(channel);
     }
@@ -1687,7 +1320,6 @@ public class RpmBuilder {
         // not reached
         return outputStream;
     }
-
 
     /**
      * Return the content of the specified script file as a String.
@@ -1728,40 +1360,100 @@ public class RpmBuilder {
 
 
     /**
+     * Returns an list of String with the name of every dependency from a list of dependencies.
      *
+     * @param dependencyList List of dependencies
+     * @return list of strings with all names of the dependencies
      */
-    static class Dependency {
-
-        private String name;
-
-        private String version;
-
-        private Integer flags;
-
-        /**
-         * Creates a new dependency.
-         *
-         * @param name    Name (e.g. "httpd")
-         * @param version Version (e.g. "1.0")
-         * @param flags   Flags (e.g. "GREATER | Flags.EQUAL")
-         */
-        Dependency(String name, String version, Integer flags) {
-            this.name = name;
-            this.version = version;
-            this.flags = flags;
+    private static StringList getStringList(List<Dependency> dependencyList) {
+        StringList list = new StringList();
+        for (Dependency dependency : dependencyList) {
+            list.add(dependency.getPackageName());
         }
-
-        public String getName() {
-            return name;
-        }
-
-        public String getVersion() {
-            return version;
-        }
-
-        public Integer getFlags() {
-            return flags;
-        }
+        return list;
     }
+
+    /**
+     * Returns an list of String with the version of every dependency from a list of dependencies.
+     *
+     * @param dependencyList List of dependencies
+     * @return list of strings with all versions of the dependencies
+     */
+    private static StringList getVersions(List<Dependency> dependencyList) {
+        StringList versionList = new StringList();
+        for (Dependency dependency : dependencyList) {
+            versionList.add(dependency.getVersion());
+        }
+        return versionList;
+    }
+
+    /**
+     * Returns an list of Integer with the flags of every dependency from a list of dependencies.
+     *
+     * @param dependencyList List of dependencies
+     * @return IntegerList with all flags of the dependencies
+     */
+    private static IntegerList getFlags(List<Dependency> dependencyList) {
+        IntegerList flagsList = new IntegerList();
+        for (Dependency dependency : dependencyList) {
+            flagsList.add(dependency.getFlags());
+        }
+        return flagsList;
+    }
+
+    /**
+     * Returns an list of String with the name of every dependency from a list of dependencies.
+     *
+     * @param dependencies List of dependencies
+     * @return list of strings with all names of the dependencies
+     */
+    private static StringList getStringList(Map<String, Dependency> dependencies) {
+        StringList nameList = new StringList();
+        for (Dependency dependency : dependencies.values()) {
+            nameList.add(dependency.getPackageName());
+        }
+        return nameList;
+    }
+
+    /**
+     * Returns an list of String with the version of every dependency from a list of dependencies.
+     *
+     * @param dependencies List of dependencies
+     * @return list of strings with all versions of the dependencies
+     */
+    private static StringList getVersions(Map<String, Dependency> dependencies) {
+        StringList versionList = new StringList();
+        for (Dependency dependency : dependencies.values()) {
+            versionList.add(dependency.getVersion());
+        }
+        return versionList;
+    }
+
+    /**
+     * Returns an list of Integer with the flags of every dependency from a list of dependencies.
+     *
+     * @param dependencies List of dependencies
+     * @return IntegerList with all flags of the dependencies
+     */
+    private static IntegerList getFlags(Map<String, Dependency> dependencies) {
+        IntegerList flagsList = new IntegerList();
+        for (Dependency dependency : dependencies.values()) {
+            flagsList.add(dependency.getFlags());
+        }
+        return flagsList;
+    }
+
+    private static int difference(int start, int boundary) {
+        return ((boundary + 1) - (start & boundary)) & boundary;
+    }
+
+    private static String hex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte aByte : bytes) {
+            sb.append(hex.charAt(((int) aByte & 0xf0) >> 4)).append(hex.charAt((int) aByte & 0x0f));
+        }
+        return sb.toString();
+    }
+
 
 }

@@ -28,7 +28,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
 import java.util.Iterator;
-import java.util.logging.Logger;
 
 /**
  * To verify the authenticity of the package, the SIGTAG_PGP tag holds a
@@ -40,8 +39,6 @@ import java.util.logging.Logger;
  * If the SIGTAG_ RSAHEADER tag is included, the SIGTAG_PGP tag must also be present.
  */
 public class SignatureGenerator {
-
-    private static final Logger logger = Logger.getLogger(SignatureGenerator.class.getName());
 
     private final boolean enabled;
 
@@ -66,26 +63,12 @@ public class SignatureGenerator {
         }
     }
 
-    public PGPPrivateKey getPrivateKey() {
-        return privateKey;
-    }
-
     @SuppressWarnings("unchecked")
     public void prepare(SignatureHeader signature, HashAlgo algo) {
         if (enabled) {
             int count = 287;
-            switch (algo) {
-                case SHA256:
-                    // V3 RSA/SHA256 signature
-                    headerOnlyEntry = (SpecEntry<byte[]>) signature.addEntry(SignatureTag.RSAHEADER, count);
-                    headerAndPayloadEntry = (SpecEntry<byte[]>) signature.addEntry(SignatureTag.LEGACY_PGP, count);
-                    break;
-                default:
-                    // RSA/SHA1 signature
-                    headerOnlyEntry = (SpecEntry<byte[]>) signature.addEntry(SignatureTag.RSAHEADER, count);
-                    headerAndPayloadEntry = (SpecEntry<byte[]>) signature.addEntry(SignatureTag.LEGACY_PGP, count);
-                    break;
-            }
+            headerOnlyEntry = (SpecEntry<byte[]>) signature.addEntry(SignatureTag.RSAHEADER, count);
+            headerAndPayloadEntry = (SpecEntry<byte[]>) signature.addEntry(SignatureTag.LEGACY_PGP, count);
         }
     }
 
@@ -111,7 +94,7 @@ public class SignatureGenerator {
     public ChannelWrapper.Key<byte[]> startDigest(WritableChannelWrapper output, String digest) throws RpmException {
         try {
             MessageDigest messageDigest = MessageDigest.getInstance(digest);
-            ChannelWrapper.Consumer<byte[]> consumer = new ChannelWrapper.Consumer<byte[]>() {
+            ChannelWrapper.Consumer<byte[]> consumer = new ChannelWrapper.Consumer<>() {
                 @Override
                 public void consume(ByteBuffer buffer) {
                     try {
@@ -154,8 +137,7 @@ public class SignatureGenerator {
 
     private PGPSecretKeyRingCollection readKeyRing(InputStream privateKeyRing) {
         try {
-            InputStream keyInputStream = new BufferedInputStream(privateKeyRing);
-            try (InputStream decoderStream = PGPUtil.getDecoderStream(keyInputStream)) {
+            try (InputStream decoderStream = PGPUtil.getDecoderStream(new BufferedInputStream(privateKeyRing))) {
                 return new PGPSecretKeyRingCollection(decoderStream, new JcaKeyFingerprintCalculator());
             }
         } catch (IOException e) {
@@ -169,7 +151,6 @@ public class SignatureGenerator {
         Iterator<PGPSecretKeyRing> iter = keyRings.getKeyRings();
         while (iter.hasNext()) {
             PGPSecretKeyRing keyRing = iter.next();
-            @SuppressWarnings("unchecked")
             Iterator<PGPSecretKey> keyIter = keyRing.getSecretKeys();
             while (keyIter.hasNext()) {
                 PGPSecretKey key = keyIter.next();
@@ -227,14 +208,10 @@ public class SignatureGenerator {
             if (!buffer.hasRemaining()) {
                 return;
             }
-            try {
-                write(buffer);
-            } catch (SignatureException e) {
-                throw new RuntimeException("could not update signature generator", e);
-            }
+            write(buffer);
         }
 
-        private void write(ByteBuffer buffer) throws SignatureException {
+        private void write(ByteBuffer buffer) {
             if (buffer.hasArray()) {
                 byte[] bufferBytes = buffer.array();
                 int offset = buffer.arrayOffset();

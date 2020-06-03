@@ -62,9 +62,6 @@ public abstract class AbstractSpecEntry<T> implements SpecEntry<T> {
 
     public abstract int getType();
 
-    public void typeCheck() {
-    }
-
     /**
      * Returns the size this entry will need in the provided data buffer to write
      * it's contents, corrected for any trailing zeros to fill to a boundary.

@@ -17,7 +17,7 @@ public interface EntryType {
 
     int BIN_ENTRY = 7;
 
-    int STRING_ARRAY_ENTRY = 8;
+    int STRING_LIST_ENTRY = 8;
 
     int I18NSTRING_ENTRY = 9;
 

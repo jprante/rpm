@@ -1,11 +1,13 @@
 package org.xbib.rpm.payload;
 
 import org.xbib.rpm.exception.RpmException;
+import org.xbib.rpm.header.IntegerList;
+import org.xbib.rpm.header.ShortList;
+import org.xbib.rpm.header.StringList;
 import org.xbib.rpm.io.ChannelWrapper;
 import org.xbib.rpm.io.ChannelWrapper.Key;
 import org.xbib.rpm.io.ReadableChannelWrapper;
 import org.xbib.rpm.security.HashAlgo;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -21,7 +23,6 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
@@ -30,8 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * The contents of an RPM archive. These entries define the files and links that
@@ -40,7 +39,19 @@ import java.util.logging.Logger;
  */
 public class Contents {
 
-    private static final Logger logger = Logger.getLogger(Contents.class.getName());
+    private static final String DEFAULT_USERNAME = "root";
+
+    private static final int DEFAULT_UID = 0;
+
+    private static final String DEFAULT_GROUP = "root";
+
+    private static final int DEFAULT_GID = 0;
+
+    private static final int DEFAULT_FILE_PERMISSION = 0644;
+
+    private static final int DEFAULT_DIRECTORY_PERMISSION = 0755;
+
+    private static final int DEFAULT_LINK_PERMISSION = 0755;
 
     private static final Set<String> BUILTIN = new LinkedHashSet<>();
 
@@ -82,14 +93,6 @@ public class Contents {
         BUILTIN.add("/var/log");
         BUILTIN.add("/var/run");
         BUILTIN.add("/var/spool");
-        /*
-        DOC_DIRS.add("/usr/doc");
-        DOC_DIRS.add("/usr/man");
-        DOC_DIRS.add("/usr/X11R6/man");
-        DOC_DIRS.add("/usr/share/doc");
-        DOC_DIRS.add("/usr/share/man");
-        DOC_DIRS.add("/usr/share/info");
-        */
     }
 
     private final Set<CpioHeader> headers =
@@ -99,6 +102,8 @@ public class Contents {
 
     private final Map<CpioHeader, Object> sources = new LinkedHashMap<>();
 
+    private final Map<CpioHeader, UserGroup> usergroups = new LinkedHashMap<>();
+
     private final Set<String> builtins = new LinkedHashSet<>();
 
     private int inode = 1;
@@ -107,153 +112,75 @@ public class Contents {
         builtins.addAll(BUILTIN);
     }
 
-    private static String hex(byte[] bytes) {
-        StringBuilder sb = new StringBuilder();
-        for (byte aByte : bytes) {
-            sb.append(hex.charAt(((int) aByte & 0xf0) >> 4)).append(hex.charAt((int) aByte & 0x0f));
-        }
-        return sb.toString();
-    }
-
     /**
-     * Adds a directory entry to the archive with the default permissions of 644.
-     *
-     * @param path   the destination path for the installed file.
-     * @param target the target string
-     */
-    public void addLink(String path, String target) {
-        addLink(path, target, -1);
-    }
-
-    /**
-     * Adds a directory entry to the archive with the specified permissions.
-     *
-     * @param path        the destination path for the installed file.
-     * @param target      the target string
-     * @param permissions the permissions flags.
-     */
-    public void addLink(String path, String target, int permissions) {
-        addLink(path, target, permissions, null, null);
-    }
-
-    /**
-     * Adds a directory entry to the archive with the specified permissions.
+     * Adds a link to the archive with the specified permissions.
      *
      * @param path        the destination path for the installed file.
      * @param target      the target string
      * @param permissions the permissions flags.
      * @param uname       user owner for the given link
      * @param gname       group owner for the given link
+     * @param uid the user id or -1 for the default value
+     * @param gid the group id or -1 for the default value
+     * @param addParents whether to add parent directories
      */
-    public void addLink(String path, String target, int permissions, String uname, String gname) {
-        if (files.contains(path)) {
-            return;
-        }
-        files.add(path);
-        logger.log(Level.FINE, "adding link ''{0}''.", path);
-        CpioHeader header = new CpioHeader(path);
-        header.setType(CpioHeader.SYMLINK);
-        header.setFileSize(target.length());
-        header.setMtime(System.currentTimeMillis());
-        header.setUname(getDefaultIfMissing(uname, CpioHeader.DEFAULT_USERNAME));
-        header.setGname(getDefaultIfMissing(gname, CpioHeader.DEFAULT_GROUP));
-        if (permissions != -1) {
-            header.setPermissions(permissions);
-        }
-        headers.add(header);
-        sources.put(header, target);
-    }
-
-    private String getDefaultIfMissing(String value, String defaultValue) {
-        return value == null || value.isEmpty() ? defaultValue : value;
-    }
-
-    /**
-     * Adds a directory entry to the archive with the default permissions of 644.
-     *
-     * @param path the destination path for the installed file.
-     */
-    public void addDirectory(String path) {
-        addDirectory(path, -1);
-    }
-
-    /**
-     * Adds a directory entry to the archive with the default permissions of 644.
-     *
-     * @param path      the destination path for the installed file.
-     * @param directive directive indicating special handling for this directory.
-     */
-    public void addDirectory(String path, EnumSet<Directive> directive) {
-        addDirectory(path, -1, directive, null, null);
-    }
-
-    /**
-     * Adds a directory entry to the archive with the specified permissions.
-     *
-     * @param path        the destination path for the installed file.
-     * @param permissions the permissions flags.
-     */
-    public void addDirectory(String path, int permissions) {
-        addDirectory(path, permissions, null, null, null);
-    }
-
-    /**
-     * Adds a directory entry to the archive with the specified permissions.
-     *
-     * @param path        the destination path for the installed file.
-     * @param permissions the permissions flags.
-     * @param directive   directive indicating special handling for this directory.
-     * @param uname       user owner for the given file
-     * @param gname       group owner for the given file
-     */
-    public void addDirectory(String path, int permissions, EnumSet<Directive> directive, String uname, String gname) {
-        addDirectory(path, permissions, directive, uname, gname, true);
-    }
-
-    /**
-     * Adds a directory entry to the archive with the specified permissions.
-     *
-     * @param path        the destination path for the installed file.
-     * @param permissions the permissions flags.
-     * @param directive   directive indicating special handling for this directory.
-     * @param uname       user owner for the given file
-     * @param gname       group owner for the given file
-     * @param addParents  whether to add parent directories to the rpm
-     */
-    public void addDirectory(String path, int permissions, EnumSet<Directive> directive, String uname,
-                             String gname, boolean addParents) {
+    public void addLink(String path, String target, int permissions,
+                        String uname, String gname, int uid, int gid, boolean addParents) {
         if (files.contains(path)) {
             return;
         }
         if (addParents) {
-            addParents(Paths.get(path), permissions, uname, gname);
+            addParents(Paths.get(path), permissions, uname, gname, uid, gid);
         }
         files.add(path);
-        logger.log(Level.FINE, "adding directory ''{0}''.", path);
+        CpioHeader header = new CpioHeader(path);
+        header.setType(CpioHeader.SYMLINK);
+        header.setFileSize(target.length());
+        header.setMtime(System.currentTimeMillis());
+        header.setUid(uid == -1 ? DEFAULT_UID : uid);
+        header.setGid(gid == -1 ? DEFAULT_GID : gid);
+        header.setPermissions(permissions == -1 ? DEFAULT_LINK_PERMISSION : permissions);
+        headers.add(header);
+        UserGroup userGroup = new UserGroup();
+        userGroup.user = getDefaultIfMissing(uname, DEFAULT_USERNAME);
+        userGroup.group = getDefaultIfMissing(gname, DEFAULT_GROUP);
+        usergroups.put(header, userGroup);
+        sources.put(header, target);
+    }
+
+    /**
+     * Adds a directory entry to the archive with the specified permissions.
+     *
+     * @param path        the destination path for the installed file.
+     * @param permissions the permissions flags.
+     * @param directive   directive indicating special handling for this directory.
+     * @param uname       user owner of the directory
+     * @param gname       group owner of the directory
+     * @param uid       user owner for the given file
+     * @param gid       group owner for the given file
+     * @param addParents  whether to add parent directories
+     */
+    public void addDirectory(String path, int permissions, EnumSet<Directive> directive,
+                             String uname, String gname, int uid, int gid, boolean addParents) {
+        if (files.contains(path)) {
+            return;
+        }
+        if (addParents) {
+            addParents(Paths.get(path), permissions, uname, gname, uid, gid);
+        }
+        files.add(path);
         CpioHeader header = new CpioHeader(path);
         header.setType(CpioHeader.DIR);
         header.setInode(inode++);
-        if (uname == null) {
-            header.setUname(CpioHeader.DEFAULT_USERNAME);
-        } else if (0 == uname.length()) {
-            header.setUname(CpioHeader.DEFAULT_USERNAME);
-        } else {
-            header.setUname(uname);
-        }
-        if (gname == null) {
-            header.setGname(CpioHeader.DEFAULT_GROUP);
-        } else if (0 == gname.length()) {
-            header.setGname(CpioHeader.DEFAULT_GROUP);
-        } else {
-            header.setGname(gname);
-        }
+        header.setUid(uid == -1 ? DEFAULT_UID : uid);
+        header.setGid(gid == -1 ? DEFAULT_GID : gid);
         header.setMtime(System.currentTimeMillis());
-        if (-1 == permissions) {
-            header.setPermissions(CpioHeader.DEFAULT_DIRECTORY_PERMISSION);
-        } else {
-            header.setPermissions(permissions);
-        }
+        header.setPermissions(permissions == -1 ? DEFAULT_DIRECTORY_PERMISSION : permissions);
         headers.add(header);
+        UserGroup userGroup = new UserGroup();
+        userGroup.user = getDefaultIfMissing(uname, DEFAULT_USERNAME);
+        userGroup.group = getDefaultIfMissing(gname, DEFAULT_GROUP);
+        usergroups.put(header, userGroup);
         sources.put(header, "");
         if (directive != null) {
             int flag = Directive.NONE.flag();
@@ -265,130 +192,32 @@ public class Contents {
     }
 
     /**
-     * Adds a file entry to the archive with the default permissions of 644.
-     *
-     * @param path   the destination path for the installed file.
-     * @param source the local file to be included in the package.
-     * @throws IOException file wasn't found
-     */
-    public void addFile(String path, Path source) throws IOException {
-        addFile(path, source, -1);
-    }
-
-    /**
-     * Adds a file entry to the archive with the specified permissions.
-     *
-     * @param path        the destination path for the installed file.
-     * @param source      the local file to be included in the package.
-     * @param permissions the permissions flags.
-     * @throws IOException file wasn't found
-     */
-    public void addFile(String path, Path source, int permissions) throws IOException {
-        addFile(path, source, permissions, null, null, null);
-    }
-
-    /**
-     * Adds a file entry to the archive with the specified permissions.
-     *
-     * @param path        the destination path for the installed file.
-     * @param source      the local file to be included in the package.
-     * @param permissions the permissions flags.
-     * @param dirmode     permission flags for parent directories, use -1 to leave as default.
-     * @throws IOException file wasn't found
-     */
-    public void addFile(String path, Path source, int permissions, int dirmode) throws IOException {
-        addFile(path, source, permissions, null, null, null, dirmode);
-    }
-
-    /**
-     * Adds a file entry to the archive with the specified permissions.
-     *
-     * @param path        the destination path for the installed file.
-     * @param source      the local file to be included in the package.
-     * @param permissions the permissions flags.
-     * @param directive   directive indicating special handling for this file.
-     * @throws IOException file wasn't found
-     */
-    public void addFile(String path, Path source, int permissions, EnumSet<Directive> directive)
-            throws IOException {
-        addFile(path, source, permissions, directive, null, null);
-    }
-
-    /**
-     * Adds a file entry to the archive with the specified permissions.
-     *
-     * @param path        the destination path for the installed file.
-     * @param source      the local file to be included in the package.
-     * @param permissions the permissions flags.
-     * @param directive   directive indicating special handling for this file.
-     * @param uname       user owner for the given file
-     * @param gname       group owner for the given file
-     * @throws IOException file wasn't found
-     */
-    public void addFile(String path, Path source, int permissions, EnumSet<Directive> directive, String uname,
-                        String gname) throws IOException {
-        addFile(path, source, permissions, directive, uname, gname, -1);
-    }
-
-    /**
-     * Adds a file entry to the archive with the specified permissions.
-     *
-     * @param path        the destination path for the installed file.
-     * @param source      the local file to be included in the package.
-     * @param permissions the permissions flags.
-     * @param directives  directives indicating special handling for this file.
-     * @param uname       user owner for the given file
-     * @param gname       group owner for the given file
-     * @param dirmode     permission flags for parent directories, use -1 to leave as default.
-     * @throws IOException file wasn't found
-     */
-    public void addFile(String path, Path source, int permissions, EnumSet<Directive> directives, String uname,
-                        String gname, int dirmode) throws IOException {
-        addFile(path, source, permissions, directives, uname, gname, dirmode, true);
-    }
-
-    /**
      * Adds a file entry to the archive with the specified permissions.
      *
      * @param path        the destination path for the installed file.
      * @param source      the local file to be included in the package.
      * @param permissions the permissions flags, use -1 to leave as default.
      * @param directives  directives indicating special handling for this file, use null to ignore.
-     * @param uname       user owner for the given file, use null for default user.
-     * @param gname       group owner for the given file, use null for default group.
-     * @param dirmode     permission flags for parent directories, use -1 to leave as default.
-     * @param addParents  whether to create parent directories for the file, defaults to true for other methods.
-     * @throws IOException file wasn't found
-     */
-    public void addFile(String path, Path source, int permissions, EnumSet<Directive> directives, String uname,
-                        String gname, int dirmode, boolean addParents) throws IOException {
-        addFile(path, source, permissions, directives, uname, gname, dirmode, addParents, -1);
-    }
-
-    /**
-     * Adds a file entry to the archive with the specified permissions.
-     *
-     * @param path        the destination path for the installed file.
-     * @param source      the local file to be included in the package.
-     * @param permissions the permissions flags, use -1 to leave as default.
-     * @param directives  directives indicating special handling for this file, use null to ignore.
-     * @param uname       user owner for the given file, use null for default user.
-     * @param gname       group owner for the given file, use null for default group.
+     * @param uname       user owner of the file
+     * @param gname       group owner of the file
+     * @param uid       user owner for the given file, use null for default user.
+     * @param gid       group owner for the given file, use null for default group.
      * @param dirmode     permission flags for parent directories, use -1 to leave as default.
      * @param addParents  whether to create parent directories for the file, defaults to true for other methods.
      * @param verifyFlags verify flags
      * @throws java.io.FileNotFoundException file wasn't found
      */
-    public void addFile(String path, Path source, int permissions, EnumSet<Directive> directives, String uname,
-                        String gname, int dirmode, boolean addParents, int verifyFlags) throws IOException {
+    public void addFile(String path, Path source, int permissions, int dirmode,
+                        EnumSet<Directive> directives,
+                        String uname, String gname, int uid, int gid,
+                        boolean addParents, int verifyFlags) throws IOException {
         if (files.contains(path)) {
             return;
         }
         if (addParents) {
-            addParents(Paths.get(path), dirmode, uname, gname);
+            addParents(Paths.get(path), dirmode, uname, gname, uid, gid);
         }
         files.add(path);
-        logger.log(Level.FINE, "adding file ''{0}''.", path);
         CpioHeader header;
         if (directives != null && directives.contains(Directive.GHOST)) {
             header = new CpioHeader(path);
@@ -397,27 +226,15 @@ public class Contents {
         }
         header.setType(CpioHeader.FILE);
         header.setInode(inode++);
-        if (uname == null) {
-            header.setUname(CpioHeader.DEFAULT_USERNAME);
-        } else if (0 == uname.length()) {
-            header.setUname(CpioHeader.DEFAULT_USERNAME);
-        } else {
-            header.setUname(uname);
-        }
-        if (gname == null) {
-            header.setGname(CpioHeader.DEFAULT_GROUP);
-        } else if (0 == gname.length()) {
-            header.setGname(CpioHeader.DEFAULT_GROUP);
-        } else {
-            header.setGname(gname);
-        }
-        if (-1 == permissions) {
-            header.setPermissions(CpioHeader.DEFAULT_FILE_PERMISSION);
-        } else {
-            header.setPermissions(permissions);
-        }
+        header.setUid(uid == -1 ? (int) Files.getAttribute(source, "unix:uid") : uid);
+        header.setGid(gid == -1 ? (int) Files.getAttribute(source, "unix:gid") : gid);
+        header.setPermissions(permissions == -1 ? DEFAULT_FILE_PERMISSION : permissions);
         header.setVerifyFlags(verifyFlags);
         headers.add(header);
+        UserGroup userGroup = new UserGroup();
+        userGroup.user = getDefaultIfMissing(uname, DEFAULT_USERNAME);
+        userGroup.group = getDefaultIfMissing(gname, DEFAULT_GROUP);
+        usergroups.put(header, userGroup);
         sources.put(header, source);
         if (directives != null) {
             int flag = Directive.NONE.flag();
@@ -435,32 +252,30 @@ public class Contents {
      * @param source      the URL with the data to be added
      * @param permissions the permissions flags.
      * @param directive   directive indicating special handling for this file.
-     * @param uname       user owner for the given file
-     * @param gname       group owner for the given file
+     * @param uname       user owner of the URL
+     * @param gname       group owner of the URL
+     * @param uid       user owner for the given file
+     * @param gid       group owner for the given file
      * @param dirmode     permission flags for parent directories, use -1 to leave as default.
-     * @throws IOException file wasn't found
      */
-    public void addURL(String path, URL source, int permissions, EnumSet<Directive> directive, String uname,
-                       String gname, int dirmode) throws IOException {
+    public void addURL(String path, URL source, int permissions, EnumSet<Directive> directive,
+                       String uname, String gname, int uid, int gid, int dirmode) {
         if (files.contains(path)) {
             return;
         }
-        addParents(Paths.get(path), dirmode, uname, gname);
+        addParents(Paths.get(path), dirmode, uname, gname, uid, gid);
         files.add(path);
-        logger.log(Level.FINE, "adding file ''{0}''.", path);
         CpioHeader header = new CpioHeader(path, source);
         header.setType(CpioHeader.FILE);
         header.setInode(inode++);
-        if (uname != null) {
-            header.setUname(uname);
-        }
-        if (gname != null) {
-            header.setGname(gname);
-        }
-        if (permissions != -1) {
-            header.setPermissions(permissions);
-        }
+        header.setUid(uid == -1 ? DEFAULT_UID : uid);
+        header.setGid(gid == -1 ? DEFAULT_GID : gid);
+        header.setPermissions(permissions == -1 ? DEFAULT_FILE_PERMISSION : permissions);
         headers.add(header);
+        UserGroup userGroup = new UserGroup();
+        userGroup.user = getDefaultIfMissing(uname, DEFAULT_USERNAME);
+        userGroup.group = getDefaultIfMissing(gname, DEFAULT_GROUP);
+        usergroups.put(header, userGroup);
         sources.put(header, source);
         if (directive != null) {
             int flag = Directive.NONE.flag();
@@ -477,21 +292,20 @@ public class Contents {
      *
      * @param path        the file to add parent directories of
      * @param permissions the permissions flags
-     * @param uname       user owner for the given file
-     * @param gname       group owner for the given file
+     * @param uid       user owner for the given file
+     * @param gid       group owner for the given file
      */
-    private void addParents(Path path, int permissions, String uname, String gname) {
+    private void addParents(Path path, int permissions, String uname, String gname, int uid, int gid) {
         List<String> parents = new ArrayList<>();
         listParents(parents, path);
         for (String parent : parents) {
-            addDirectory(parent, permissions, null, uname, gname);
+            addDirectory(parent, permissions, null, uname, gname, uid, gid, true);
         }
     }
 
     /**
      * Add additional directory that is assumed to already exist on system where the RPM will be installed
      * (e.g. /etc) and should not have an entry in the RPM.
-     * <p>
      * The builtin will only be added to this instance of Contents.
      *
      * @param directory the directory to add
@@ -571,7 +385,7 @@ public class Contents {
      *
      * @return the dirnames headers values
      */
-    public String[] getDirNames() {
+    public StringList getDirNames() {
         Set<String> set = new LinkedHashSet<>();
         for (CpioHeader header : headers) {
             Path path = Paths.get(header.getName()).getParent();
@@ -584,7 +398,7 @@ public class Contents {
             }
             set.add(parent);
         }
-        return set.toArray(new String[set.size()]);
+        return new StringList(set);
     }
 
     /**
@@ -592,21 +406,20 @@ public class Contents {
      *
      * @return the dirindexes
      */
-    public Integer[] getDirIndexes() {
-        List<String> dirs = Arrays.asList(getDirNames());
-        Integer[] array = new Integer[headers.size()];
-        int x = 0;
+    public IntegerList getDirIndexes() {
+        StringList dirs = getDirNames();
+        IntegerList array = new IntegerList();
         for (CpioHeader header : headers) {
             Path path = Paths.get(header.getName()).getParent();
             if (path == null) {
-                array[x++] = 0; // dummy value, required when including non-existent directories
+                array.add(0);
                 continue;
             }
             String parent = CpioHeader.normalizePath(path.toString());
             if (!parent.endsWith("/")) {
                 parent += "/";
             }
-            array[x++] = dirs.indexOf(parent);
+            array.add(dirs.indexOf(parent));
         }
         return array;
     }
@@ -616,12 +429,11 @@ public class Contents {
      *
      * @return the basename header values
      */
-    public String[] getBaseNames() {
-        String[] array = new String[headers.size()];
-        int x = 0;
+    public StringList getBaseNames() {
+        StringList array = new StringList();
         for (CpioHeader header : headers) {
             Path path = Paths.get(header.getName()).getFileName();
-            array[x++] = path != null ? CpioHeader.normalizePath(path.toString()) : "";
+            array.add(path != null ? CpioHeader.normalizePath(path.toString()) : "");
         }
         return array;
     }
@@ -631,22 +443,20 @@ public class Contents {
      *
      * @return the sizes header values
      */
-    public Integer[] getSizes() {
-        Integer[] array = new Integer[headers.size()];
-        int x = 0;
+    public IntegerList getSizes() {
+        IntegerList array = new IntegerList();
         try {
             for (CpioHeader header : headers) {
                 Object object = sources.get(header);
                 if (object instanceof Path) {
-                    array[x] = (int) Files.size((Path) object);
+                    array.add((int) Files.size((Path) object));
                 } else if (object instanceof URL) {
-                    array[x] = ((URL) object).openConnection().getContentLength();
+                    array.add(((URL) object).openConnection().getContentLength());
                 } else if (header.getType() == CpioHeader.DIR) {
-                    array[x] = 4096;
+                    array.add(4096);
                 } else if (header.getType() == CpioHeader.SYMLINK) {
-                    array[x] = ((String) object).length();
+                    array.add(((String) object).length());
                 }
-                ++x;
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -659,11 +469,10 @@ public class Contents {
      *
      * @return the modes header values
      */
-    public short[] getModes() {
-        short[] array = new short[headers.size()];
-        int x = 0;
+    public ShortList getModes() {
+        ShortList array = new ShortList();
         for (CpioHeader header : headers) {
-            array[x++] = (short) header.getMode();
+            array.add((short) header.getMode());
         }
         return array;
     }
@@ -673,11 +482,10 @@ public class Contents {
      *
      * @return the rdevs header values
      */
-    public short[] getRdevs() {
-        short[] array = new short[headers.size()];
-        int x = 0;
+    public ShortList getRdevs() {
+        ShortList array = new ShortList();
         for (CpioHeader header : headers) {
-            array[x++] = (short) ((header.getRdevMajor() << 8) + header.getRdevMinor());
+            array.add((short) ((header.getRdevMajor() << 8) + header.getRdevMinor()));
         }
         return array;
     }
@@ -687,11 +495,10 @@ public class Contents {
      *
      * @return the mtimes header values
      */
-    public Integer[] getMtimes() {
-        Integer[] array = new Integer[headers.size()];
-        int x = 0;
+    public IntegerList getMtimes() {
+        IntegerList array = new IntegerList();
         for (CpioHeader header : headers) {
-            array[x++] = header.getMtime();
+            array.add(header.getMtime());
         }
         return array;
     }
@@ -704,10 +511,9 @@ public class Contents {
      * @throws RpmException if the algorithm isn't supported
      * @throws IOException there was an IO error
      */
-    public String[] getDigests(HashAlgo hashAlgo) throws IOException, RpmException {
+    public StringList getDigests(HashAlgo hashAlgo) throws IOException, RpmException {
         ByteBuffer buffer = ByteBuffer.allocate(4096);
-        String[] array = new String[headers.size()];
-        int x = 0;
+        StringList array = new StringList();
         for (CpioHeader header : headers) {
             Object object = sources.get(header);
             String value = "";
@@ -739,7 +545,7 @@ public class Contents {
                     }
                 }
             }
-            array[x++] = value;
+            array.add(value);
         }
         return array;
     }
@@ -751,7 +557,7 @@ public class Contents {
      * @return reference to the new key added to the consumers
      */
     private ChannelWrapper.Key<byte[]> startDigest(ReadableChannelWrapper input, MessageDigest digest) {
-        ChannelWrapper.Consumer<byte[]> consumer = new ChannelWrapper.Consumer<byte[]>() {
+        ChannelWrapper.Consumer<byte[]> consumer = new ChannelWrapper.Consumer<>() {
             @Override
             public void consume(ByteBuffer buffer) {
                 try {
@@ -778,16 +584,15 @@ public class Contents {
      *
      * @return the linktos header
      */
-    public String[] getLinkTos() {
-        String[] array = new String[headers.size()];
-        int x = 0;
+    public StringList getLinkTos() {
+        StringList array = new StringList();
         for (CpioHeader header : headers) {
             Object object = sources.get(header);
             String value = "";
             if (object instanceof String) {
                 value = String.valueOf(object);
             }
-            array[x++] = value;
+            array.add(value);
         }
         return array;
     }
@@ -797,50 +602,40 @@ public class Contents {
      *
      * @return the flags header values
      */
-    public Integer[] getFlags() {
-        Integer[] array = new Integer[headers.size()];
-        int x = 0;
+    public IntegerList getFlags() {
+        IntegerList array = new IntegerList();
         for (CpioHeader header : headers) {
-            array[x++] = header.getFlags();
+            array.add(header.getFlags());
         }
         return array;
     }
 
     /**
-     * Gets the users header values.
+     * Gets the users.
      *
-     * @return the users header values
+     * @return the users
      */
-    public String[] getUsers() {
-        String[] array = new String[headers.size()];
-        int x = 0;
+    public StringList getUsers() {
+        StringList list = new StringList();
         for (CpioHeader header : headers) {
-            array[x++] = header.getUname() == null ? "root" : header.getUname();
+            UserGroup userGroup = usergroups.get(header);
+            list.add(userGroup.user);
         }
-        return array;
+        return list;
     }
 
     /**
-     * Gets the groups header values.
+     * Gets the groups.
      *
-     * @return the groups header values
+     * @return the groups
      */
-    public String[] getGroups() {
-        String[] array = new String[headers.size()];
-        int x = 0;
+    public StringList getGroups() {
+        StringList list = new StringList();
         for (CpioHeader header : headers) {
-            array[x++] = header.getGname() == null ? "root" : header.getGname();
+            UserGroup userGroup = usergroups.get(header);
+            list.add(userGroup.group);
         }
-        return array;
-    }
-
-    /**
-     * Gets the colors header values.
-     *
-     * @return the colors header values
-     */
-    public Integer[] getColors() {
-        return new Integer[headers.size()];
+        return list;
     }
 
     /**
@@ -848,11 +643,10 @@ public class Contents {
      *
      * @return the verifyflags header values
      */
-    public Integer[] getVerifyFlags() {
-        Integer[] array = new Integer[headers.size()];
-        int x = 0;
+    public IntegerList getVerifyFlags() {
+        IntegerList array = new IntegerList();
         for (CpioHeader header : headers) {
-            array[x++] = header.getVerifyFlags();
+            array.add(header.getVerifyFlags());
         }
         return array;
     }
@@ -862,9 +656,11 @@ public class Contents {
      *
      * @return the classes header values
      */
-    public Integer[] getClasses() {
-        Integer[] array = new Integer[headers.size()];
-        Arrays.fill(array, 1);
+    public IntegerList getClasses() {
+        IntegerList array = new IntegerList();
+        for (int i = 0; i < headers.size(); i++) {
+            array.add(1);
+        }
         return array;
     }
 
@@ -873,11 +669,10 @@ public class Contents {
      *
      * @return the devices header values
      */
-    public Integer[] getDevices() {
-        Integer[] array = new Integer[headers.size()];
-        int x = 0;
+    public IntegerList getDevices() {
+        IntegerList array = new IntegerList();
         for (CpioHeader header : headers) {
-            array[x++] = (header.getDevMajor() << 8) + header.getDevMinor();
+            array.add((header.getDevMajor() << 8) + header.getDevMinor());
         }
         return array;
     }
@@ -887,11 +682,10 @@ public class Contents {
      *
      * @return the iNodes header values
      */
-    public Integer[] getInodes() {
-        Integer[] array = new Integer[headers.size()];
-        int x = 0;
+    public IntegerList getInodes() {
+        IntegerList array = new IntegerList();
         for (CpioHeader header : headers) {
-            array[x++] = header.getInode();
+            array.add(header.getInode());
         }
         return array;
     }
@@ -901,28 +695,12 @@ public class Contents {
      *
      * @return the langs header values
      */
-    public String[] getLangs() {
-        String[] array = new String[headers.size()];
-        Arrays.fill(array, "");
+    public StringList getLangs() {
+        StringList array = new StringList();
+        for (int i =0; i < headers.size(); i++) {
+            array.add("");
+        }
         return array;
-    }
-
-    /**
-     * Gets the dependsx header values.
-     *
-     * @return the dependsx header values
-     */
-    public Integer[] getDependsX() {
-        return new Integer[headers.size()];
-    }
-
-    /**
-     * Gets the dependsn header values.
-     *
-     * @return the dependsn header values
-     */
-    public Integer[] getDependsN() {
-        return new Integer[headers.size()];
     }
 
     /**
@@ -930,9 +708,11 @@ public class Contents {
      *
      * @return the contexts header values
      */
-    public String[] getContexts() {
-        String[] array = new String[headers.size()];
-        Arrays.fill(array, "<<none>>");
+    public StringList getContexts() {
+        StringList array = new StringList();
+        for (int i = 0; i< headers.size(); i++) {
+            array.add("<<none>>");
+        }
         return array;
     }
 
@@ -953,5 +733,17 @@ public class Contents {
         }
         parents.add(s);
         listParents(parents, parent);
+    }
+
+    private String getDefaultIfMissing(String value, String defaultValue) {
+        return value == null || value.isEmpty() ? defaultValue : value;
+    }
+
+    private static String hex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte aByte : bytes) {
+            sb.append(hex.charAt(((int) aByte & 0xf0) >> 4)).append(hex.charAt((int) aByte & 0x0f));
+        }
+        return sb.toString();
     }
 }

@@ -1,13 +1,14 @@
 package org.xbib.rpm.header.entry;
 
 import org.xbib.rpm.header.EntryType;
+import org.xbib.rpm.header.ShortList;
 
 import java.nio.ByteBuffer;
 
 /**
  *
  */
-public class Int16SpecEntry extends AbstractSpecEntry<short[]> {
+public class Int16SpecEntry extends AbstractSpecEntry<ShortList> {
 
     @Override
     public int getOffset(int offset) {
@@ -26,9 +27,9 @@ public class Int16SpecEntry extends AbstractSpecEntry<short[]> {
 
     @Override
     public void read(ByteBuffer buffer) {
-        short[] values = new short[count];
-        for (int x = 0; x < count; x++) {
-            values[x] = buffer.getShort();
+        ShortList values = new ShortList();
+        for (int i = 0; i < count; i++) {
+            values.add(buffer.getShort());
         }
         setValues(values);
     }

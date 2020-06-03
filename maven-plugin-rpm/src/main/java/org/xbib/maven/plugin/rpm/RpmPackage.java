@@ -1120,7 +1120,7 @@ public class RpmPackage {
         builder.setBuildHost(getBuildHostName());
         builder.setPackager(getPackager());
         builder.setUrl(getUrl());
-        builder.setPrefixes(getPrefixes().toArray(new String[0]));
+        builder.setPrefixes(getPrefixes());
         builder.setSourceRpm(getSourceRpm());
         for (String builtin : getBuiltins()) {
             builder.addBuiltinDirectory(builtin);
@@ -1183,7 +1183,9 @@ public class RpmPackage {
         }
         for (RpmLink link : getLinks()) {
             builder.addLink(link.getPath(), link.getTarget(),
-                    link.getPermissionsOrDefault(), link.getOwnerOrDefault(), link.getGroupOrDefault());
+                    link.getPermissionsOrDefault(),
+                    link.getOwnerOrDefault(),
+                    link.getGroupOrDefault());
         }
         getLog().debug("Setting trigger scripts");
         RpmScriptTemplateRenderer scriptTemplateRenderer = getMojo().getTemplateRenderer();

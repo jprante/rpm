@@ -1,6 +1,7 @@
 package org.xbib.rpm.header.entry;
 
 import org.xbib.rpm.header.EntryType;
+import org.xbib.rpm.header.StringList;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -8,7 +9,7 @@ import java.nio.charset.StandardCharsets;
 /**
  *
  */
-public class StringSpecEntry extends AbstractSpecEntry<String[]> {
+public class StringSpecEntry extends AbstractSpecEntry<StringList> {
 
     @Override
     public int getType() {
@@ -28,8 +29,8 @@ public class StringSpecEntry extends AbstractSpecEntry<String[]> {
 
     @Override
     public void read(ByteBuffer buffer) {
-        String[] values = new String[count];
-        for (int x = 0; x < count; x++) {
+        StringList values = new StringList();
+        for (int i = 0; i < count; i++) {
             int length = 0;
             while (buffer.get(buffer.position() + length) != 0) {
                 length++;
@@ -37,7 +38,7 @@ public class StringSpecEntry extends AbstractSpecEntry<String[]> {
             ByteBuffer slice = buffer.slice();
             buffer.position(buffer.position() + length + 1);
             slice.limit(length);
-            values[x] = StandardCharsets.UTF_8.decode(slice).toString();
+            values.add(StandardCharsets.UTF_8.decode(slice).toString());
         }
         setValues(values);
     }

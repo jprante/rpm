@@ -1,6 +1,6 @@
 package org.xbib.rpm;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.xbib.rpm.lead.Architecture;
 import org.xbib.rpm.lead.Os;
 import org.xbib.rpm.lead.PackageType;
@@ -13,7 +13,7 @@ import java.nio.file.Paths;
 public class SimpleRpmTest {
 
     @Test
-    public void testRpm() throws Exception {
+    public void testRpmBuild() throws Exception {
         RpmBuilder rpmBuilder = new RpmBuilder();
         rpmBuilder.setPackage("test", "0.0.1", "1");
         rpmBuilder.setType(PackageType.BINARY);

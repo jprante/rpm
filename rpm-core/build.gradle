@@ -1,11 +1,5 @@
 dependencies {
-    compile "org.bouncycastle:bcpg-jdk15on:${project.property('bouncycastle.version')}"
-    compile "org.xbib:archive:${project.property('xbib-archive.version')}"
-}
-
-test {
-    testLogging {
-        showStandardStreams = true
-        exceptionFormat = 'full'
-    }
+    api "org.bouncycastle:bcpg-jdk15on:${project.property('bouncycastle.version')}"
+    api "org.xbib:io-compress-bzip2:${project.property('xbib-archive.version')}"
+    api "org.xbib:io-compress-xz:${project.property('xbib-archive.version')}"
 }

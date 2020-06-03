@@ -251,8 +251,8 @@ public class RpmPackageRule extends RpmBaseObject {
             getLog().debug(String.format("Adding file: %s to path %s with owner '%s', " +
                             "group '%s', with file mode %o.",
                     sourcePath, destinationPath, owner, group, fileMode));
-            builder.addFile(destinationPath, Paths.get(sourcePath), fileMode,
-                    getDirectives(), owner, group);
+            builder.addFile(destinationPath, Paths.get(sourcePath), fileMode, -1,
+                    getDirectives(), owner, group, true);
         }
         return includedFiles;
     }

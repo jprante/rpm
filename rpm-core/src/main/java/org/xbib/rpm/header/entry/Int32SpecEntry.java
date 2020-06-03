@@ -1,13 +1,14 @@
 package org.xbib.rpm.header.entry;
 
 import org.xbib.rpm.header.EntryType;
+import org.xbib.rpm.header.IntegerList;
 
 import java.nio.ByteBuffer;
 
 /**
  *
  */
-public class Int32SpecEntry extends AbstractSpecEntry<Integer[]> {
+public class Int32SpecEntry extends AbstractSpecEntry<IntegerList> {
 
     @Override
     public int getOffset(int offset) {
@@ -26,18 +27,21 @@ public class Int32SpecEntry extends AbstractSpecEntry<Integer[]> {
 
     @Override
     public void read(ByteBuffer buffer) {
-        Integer[] values = new Integer[count];
+        IntegerList values = new IntegerList();
         for (int x = 0; x < count; x++) {
-            values[x] = buffer.getInt();
+            values.add(buffer.getInt());
         }
         setValues(values);
     }
 
     @Override
     public void write(ByteBuffer buffer) {
-        for (int x = 0; x < count; x++) {
-            Integer i = values[x];
-            buffer.putInt(i);
+        for (int i = 0; i < count; i++) {
+            Integer integer = values.get(i);
+            if (integer == null) {
+                throw new NullPointerException();
+            }
+            buffer.putInt(integer);
         }
     }
 
@@ -48,7 +52,7 @@ public class Int32SpecEntry extends AbstractSpecEntry<Integer[]> {
         if (values != null) {
             for (Integer i : values) {
                 builder.append(i);
-                if (values.length > 1) {
+                if (values.size() > 1) {
                     builder.append(", ");
                 }
             }

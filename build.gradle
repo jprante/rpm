@@ -1,95 +1,33 @@
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-
 plugins {
-    id "org.sonarqube" version "2.6.2"
-    id "io.codearte.nexus-staging" version "0.11.0"
+    id "de.marcphilipp.nexus-publish" version "0.4.0"
+    id "io.codearte.nexus-staging" version "0.21.1"
 }
 
-printf "Date: %s\nHost: %s\nOS: %s %s %s\nJava: %s %s %s %s\nGradle: %s Groovy: %s Java: %s\n" +
-        "Build: group: ${project.group} name: ${project.name} version: ${project.version}\n",
-        ZonedDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME),
-        InetAddress.getLocalHost(),
-        System.getProperty("os.name"),
-        System.getProperty("os.arch"),
-        System.getProperty("os.version"),
-        System.getProperty("java.version"),
-        System.getProperty("java.vm.version"),
-        System.getProperty("java.vm.vendor"),
-        System.getProperty("java.vm.name"),
-        gradle.gradleVersion, GroovySystem.getVersion(), JavaVersion.current()
+wrapper {
+    gradleVersion = "${project.property('gradle.wrapper.version')}"
+    distributionType = Wrapper.DistributionType.ALL
+}
 
 ext {
     user = 'xbib'
-    projectName = 'rpm'
-    projectDescription = 'Java 8 RPM implementation with plugins for Ant, Maven, Gradle'
-    scmUrl = 'https://github.com/xbib/rpm'
-    scmConnection = 'scm:git:git://github.com/xbib/rpm.git'
-    scmDeveloperConnection = 'scm:git:git://github.com/xbib/rpm.git'
+    name = 'rpm'
+    description = 'RPM implementation in Java with plugins for Ant, Maven, Gradle'
+    inceptionYear = '2016'
+    url = 'https://github.com/' + user + '/' + name
+    scmUrl = 'https://github.com/' + user + '/' + name
+    scmConnection = 'scm:git:git://github.com/' + user + '/' + name + '.git'
+    scmDeveloperConnection = 'scm:git:ssh://git@github.com:' + user + '/' + name + '.git'
+    issueManagementSystem = 'Github'
+    issueManagementUrl = ext.scmUrl + '/issues'
+    licenseName = 'The Apache License, Version 2.0'
+    licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
 }
 
 subprojects {
-
-    apply plugin: 'java'
-    apply plugin: 'maven'
-
-    repositories {
-        mavenLocal()
-        mavenCentral()
-    }
-
-    dependencies {
-        testCompile "junit:junit:${project.property('junit.version')}"
-    }
-
-    compileJava {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-    compileTestJava {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-
-    [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
-
-    tasks.withType(JavaCompile) {
-        options.compilerArgs << "-Xlint:all" << "-profile" << "compact1"
-    }
-
-    test {
-        testLogging {
-            showStandardStreams = false
-            exceptionFormat = 'full'
-        }
-    }
-
-    clean {
-        delete 'out'
-    }
-
-    sonarqube {
-        properties {
-            property "sonar.projectName", "xbib RPM"
-            property "sonar.sourceEncoding", "UTF-8"
-            property "sonar.tests", "src/test/java"
-            property "sonar.scm.provider", "git"
-            property "sonar.junit.reportsPath", "build/test-results/test/"
-        }
-    }
-
-    task sourcesJar(type: Jar) {
-        classifier 'sources'
-        from sourceSets.main.allSource
-    }
-
-    task javadocJar(type: Jar) {
-        classifier 'javadoc'
-    }
-
-    artifacts {
-        archives sourcesJar, javadocJar
-    }
-
-    apply from: "${rootProject.projectDir}/gradle/publish.gradle"
+    apply plugin: 'java-library'
+    apply from: rootProject.file('gradle/ide/idea.gradle')
+    apply from: rootProject.file('gradle/compile/java.gradle')
+    apply from: rootProject.file('gradle/test/junit5.gradle')
+    apply from: rootProject.file('gradle/publishing/publication.gradle')
 }
+apply from: rootProject.file('gradle/publishing/sonatype.gradle')

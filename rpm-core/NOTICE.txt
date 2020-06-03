@@ -1,6 +1,6 @@
 This is a derived work of
 
-http://redline-rpm.org/index.html
+Redline RPM http://redline-rpm.org/index.html
 
 licensed under MIT License:
 
