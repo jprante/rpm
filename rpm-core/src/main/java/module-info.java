@@ -11,8 +11,8 @@ module org.xbib.rpm {
     exports org.xbib.rpm.security;
     exports org.xbib.rpm.signature;
     exports org.xbib.rpm.trigger;
-    requires org.bouncycastle.pg;
-    requires org.bouncycastle.provider;
+    requires transitive org.bouncycastle.pg;
+    requires transitive org.bouncycastle.provider;
     requires org.xbib.io.compress.bzip;
     requires org.xbib.io.compress.xz;
 }

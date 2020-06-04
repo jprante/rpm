@@ -71,3 +71,5 @@ task generatePluginDescriptor(type: JavaExec, dependsOn: compileJava) {
 }
 
 project.jar.dependsOn(generatePluginDescriptor)
+
+apply from: rootProject.file('gradle/publishing/publication.gradle')

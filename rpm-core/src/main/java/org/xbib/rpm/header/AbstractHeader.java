@@ -203,9 +203,9 @@ public abstract class AbstractHeader {
         if (existingValues == null) {
             entry.setValues(values);
         } else if (existingValues instanceof Collection) {
-            Collection collection = (Collection) existingValues;
+            Collection<T> collection = (Collection<T>) existingValues;
             if (values instanceof Collection) {
-                Collection valuesCollection = (Collection) values;
+                Collection<T> valuesCollection = (Collection<T>) values;
                 collection.addAll(valuesCollection);
             } else {
                 collection.add(values);
