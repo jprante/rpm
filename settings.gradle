@@ -2,5 +2,7 @@ rootProject.name = name
 
 include 'rpm-core'
 include 'rpm-ant'
-include 'maven-plugin-rpm'
-include 'gradle-plugin-rpm'
+// gradle plugin moved to antoher repository
+//include 'gradle-plugin-rpm'
+// maven plugin was removed in gradle
+//include 'maven-plugin-rpm'

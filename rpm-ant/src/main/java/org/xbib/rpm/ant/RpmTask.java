@@ -1,5 +1,6 @@
 package org.xbib.rpm.ant;
 
+import java.security.NoSuchAlgorithmException;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.DirectoryScanner;
 import org.apache.tools.ant.Task;
@@ -279,7 +280,7 @@ public class RpmTask extends Task {
                         triggerPostUn.getFlag());
             }
             rpmBuilder.build(destination);
-        } catch (IOException | RpmException e) {
+        } catch (IOException | RpmException | NoSuchAlgorithmException e) {
             throw new BuildException("error while building package", e);
         }
     }

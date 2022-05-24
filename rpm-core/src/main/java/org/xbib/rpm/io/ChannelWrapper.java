@@ -5,6 +5,7 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
+import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,41 +18,20 @@ public abstract class ChannelWrapper {
 
     final Map<Key<?>, Consumer<?>> consumers = new HashMap<>();
 
-    public Key<Integer> start(WritableByteChannel output) {
-        Key<Integer> object = new Key<>();
-        consumers.put(object, new Consumer<Integer>() {
-            int count;
-
-            @Override
-            public void consume(ByteBuffer buffer) {
-                try {
-                    count += output.write(buffer);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
-            @Override
-            public Integer finish() {
-                return count;
-            }
-        });
-        return object;
-    }
-
     /**
      * Initializes a byte counter on this channel.
      *
      * @return reference to the new key added to the consumers
      */
-    public Key<Integer> start() {
+    public Key<Integer> startCount() {
         Key<Integer> object = new Key<>();
         consumers.put(object, new Consumer<Integer>() {
             int count;
 
             @Override
             public void consume(ByteBuffer buffer) {
-                count += buffer.remaining();
+                int c = buffer.remaining();
+                count += c;
             }
 
             @Override
@@ -68,7 +48,7 @@ public abstract class ChannelWrapper {
      * @param consumer the channel consumer
      * @return reference to the new key added to the consumers
      */
-    public Key<byte[]> start(Consumer<byte[]> consumer) {
+    public Key<byte[]> startCount(Consumer<byte[]> consumer) {
         Key<byte[]> object = new Key<>();
         consumers.put(object, consumer);
         return object;

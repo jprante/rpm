@@ -96,7 +96,14 @@ public enum HeaderTag implements EntryType {
     OBSOLETEVERSION(1115, STRING_LIST_ENTRY, StringList.class, "obsoleteversion"),
     FILEDIGESTALGOS(1177, INT32_ENTRY, IntegerList.class, "filedigestalgos"),
     SIGNATURES(0x0000003e, INT32_ENTRY, IntegerList.class, "_signatures"),
-    IMMUTABLE(0x0000003f, INT32_ENTRY, IntegerList.class, "_immutable");
+    IMMUTABLE(0x0000003f, INT32_ENTRY, IntegerList.class, "_immutable"),
+    DISTURL( 1123, STRING_ENTRY, String.class,"disturl"),
+    DISTTAG( 1155, STRING_ENTRY,  String.class,"disttag"),
+    BUGURL( 5012, STRING_ENTRY, String.class,"bugurl"),
+    ENCODING( 5062, STRING_ENTRY, String.class,"encoding"),
+    PAYLOADDIGEST( 5092, STRING_LIST_ENTRY, StringList.class,"payloaddigest"),
+    PAYLOADDIGESTALGO( 5093, INT32_ENTRY,  IntegerList.class,"payloaddigestalgo"),
+    PAYLOADDIGESTALT( 5097, STRING_LIST_ENTRY,  StringList.class, "payloaddigestalt");
 
     private final int code;
 

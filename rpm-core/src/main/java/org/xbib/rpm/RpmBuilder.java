@@ -1,5 +1,9 @@
 package org.xbib.rpm;
 
+import java.io.ByteArrayOutputStream;
+import java.security.DigestOutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import org.xbib.io.compress.bzip2.Bzip2OutputStream;
 import org.xbib.io.compress.xz.FilterOptions;
 import org.xbib.io.compress.xz.LZMA2Options;
@@ -54,12 +58,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
 
-/**
- *
- */
 public class RpmBuilder {
-
-    private static final Integer SHASIZE = 41;
 
     private static final String DEFAULTSCRIPTPROG = "/bin/sh";
 
@@ -1117,7 +1116,7 @@ public class RpmBuilder {
      * @throws IOException  there was an IO error
      * @throws RpmException if RPM could not be generated
      */
-    public void build(Path directory) throws RpmException, IOException {
+    public void build(Path directory) throws RpmException, IOException, NoSuchAlgorithmException {
         if (packageName == null) {
             setPackageName(format.getLead().getName() + "." + format.getLead().getArch().toString().toLowerCase() + ".rpm");
         }
@@ -1137,8 +1136,7 @@ public class RpmBuilder {
      * @throws RpmException if RPM generation fails
      */
     @SuppressWarnings("unchecked")
-    public void build(SeekableByteChannel channel) throws RpmException, IOException {
-        WritableChannelWrapper output = new WritableChannelWrapper(channel);
+    public void build(SeekableByteChannel channel) throws RpmException, IOException, NoSuchAlgorithmException {
         format.getHeader().createEntry(HeaderTag.REQUIRENAME, getStringList(requires));
         format.getHeader().createEntry(HeaderTag.REQUIREVERSION, getVersions(requires));
         format.getHeader().createEntry(HeaderTag.REQUIREFLAGS, getFlags(requires));
@@ -1164,22 +1162,16 @@ public class RpmBuilder {
             format.getHeader().createEntry(HeaderTag.BASENAMES, contents.getBaseNames());
         }
         if (triggerCounter > 0) {
-            format.getHeader().createEntry(HeaderTag.TRIGGERSCRIPTS,
-                    triggerscripts.toArray(new String[0]));
-            format.getHeader().createEntry(HeaderTag.TRIGGERNAME,
-                    triggernames.toArray(new String[0]));
-            format.getHeader().createEntry(HeaderTag.TRIGGERVERSION,
-                    triggerversions.toArray(new String[0]));
-            format.getHeader().createEntry(HeaderTag.TRIGGERFLAGS,
-                    triggerflags.toArray(new Integer[0]));
-            format.getHeader().createEntry(HeaderTag.TRIGGERINDEX,
-                    triggerindexes.toArray(new Integer[0]));
-            format.getHeader().createEntry(HeaderTag.TRIGGERSCRIPTPROG,
-                    triggerscriptprogs.toArray(new String[0]));
+            format.getHeader().createEntry(HeaderTag.TRIGGERSCRIPTS, triggerscripts.toArray(new String[0]));
+            format.getHeader().createEntry(HeaderTag.TRIGGERNAME, triggernames.toArray(new String[0]));
+            format.getHeader().createEntry(HeaderTag.TRIGGERVERSION, triggerversions.toArray(new String[0]));
+            format.getHeader().createEntry(HeaderTag.TRIGGERFLAGS, triggerflags.toArray(new Integer[0]));
+            format.getHeader().createEntry(HeaderTag.TRIGGERINDEX, triggerindexes.toArray(new Integer[0]));
+            format.getHeader().createEntry(HeaderTag.TRIGGERSCRIPTPROG, triggerscriptprogs.toArray(new String[0]));
         }
         if (contents.size() > 0) {
-            format.getHeader().createEntry(HeaderTag.FILEDIGESTALGOS, HashAlgo.MD5.num());
-            format.getHeader().createEntry(HeaderTag.FILEDIGESTS, contents.getDigests(HashAlgo.MD5));
+            format.getHeader().createEntry(HeaderTag.FILEDIGESTALGOS, HashAlgo.SHA256.num());
+            format.getHeader().createEntry(HeaderTag.FILEDIGESTS, contents.getDigests(HashAlgo.SHA256));
             format.getHeader().createEntry(HeaderTag.FILESIZES, contents.getSizes());
             format.getHeader().createEntry(HeaderTag.FILEMODES, contents.getModes());
             format.getHeader().createEntry(HeaderTag.FILERDEVS, contents.getRdevs());
@@ -1195,92 +1187,50 @@ public class RpmBuilder {
             format.getHeader().createEntry(HeaderTag.FILECONTEXTS, contents.getContexts());
         }
         format.getHeader().createEntry(HeaderTag.PAYLOADFLAGS, "9");
-        SpecEntry<IntegerList> sigsize =
-                (SpecEntry<IntegerList>) format.getSignatureHeader().addEntry(SignatureTag.LEGACY_SIGSIZE, 1);
-        SpecEntry<IntegerList> signaturHeaderPayloadEntry =
-                (SpecEntry<IntegerList>) format.getSignatureHeader().addEntry(SignatureTag.PAYLOADSIZE, 1);
-        SpecEntry<byte[]> md5Entry =
-                (SpecEntry<byte[]>) format.getSignatureHeader().addEntry(SignatureTag.LEGACY_MD5, 16);
-        SpecEntry<StringList> shaEntry =
-                (SpecEntry<StringList>) format.getSignatureHeader().addEntry(SignatureTag.SHA1HEADER, 1);
-        shaEntry.setSize(SHASIZE);
+        format.getHeader().createEntry(HeaderTag.PAYLOADDIGESTALGO, HashAlgo.SHA256.num());
+        SpecEntry<StringList> payloadDigest = (SpecEntry<StringList>) format.getHeader().addEntry(HeaderTag.PAYLOADDIGEST, 1);
+        payloadDigest.setSize(65);
+        SpecEntry<StringList> payloadDigestAlt = (SpecEntry<StringList>) format.getHeader().addEntry(HeaderTag.PAYLOADDIGESTALT, 1);
+        payloadDigestAlt.setSize(65);
+        SpecEntry<IntegerList> sigsize = (SpecEntry<IntegerList>) format.getSignatureHeader().addEntry(SignatureTag.LEGACY_SIGSIZE, 1);
+        SpecEntry<IntegerList> signaturHeaderPayloadEntry = (SpecEntry<IntegerList>) format.getSignatureHeader().addEntry(SignatureTag.PAYLOADSIZE, 1);
+        SpecEntry<byte[]> md5Entry = (SpecEntry<byte[]>) format.getSignatureHeader().addEntry(SignatureTag.LEGACY_MD5, 16);
+        SpecEntry<StringList> shaEntry = (SpecEntry<StringList>) format.getSignatureHeader().addEntry(SignatureTag.SHA1HEADER, 1);
+        shaEntry.setSize(41);
+        SpecEntry<StringList> sha256Entry = (SpecEntry<StringList>) format.getSignatureHeader().addEntry(SignatureTag.SHA256HEADER, 1);
+        sha256Entry.setSize(65);
         SignatureGenerator signatureGenerator = new SignatureGenerator(privateKeyRing, privateKeyId, privateKeyPassphrase);
         signatureGenerator.prepare(format.getSignatureHeader(), privateKeyHashAlgo);
         format.getLead().write(channel);
-        SpecEntry<byte[]> signatureEntry =
-                (SpecEntry<byte[]>) format.getSignatureHeader().addEntry(SignatureTag.SIGNATURES, 16);
+        SpecEntry<byte[]> signatureEntry = (SpecEntry<byte[]>) format.getSignatureHeader().addEntry(SignatureTag.SIGNATURES, 16);
         signatureEntry.setValues(createHeaderIndex(HeaderTag.SIGNATURES.getCode(), format.getSignatureHeader().count()));
+        WritableChannelWrapper output = new WritableChannelWrapper(channel);
         ChannelWrapper.empty(output, ByteBuffer.allocate(format.getSignatureHeader().write(channel)));
-        ChannelWrapper.Key<Integer> sigsizekey = output.start();
-        ChannelWrapper.Key<byte[]> shakey = signatureGenerator.startDigest(output, "SHA");
+        ChannelWrapper.Key<Integer> sigsizekey = output.startCount();
         ChannelWrapper.Key<byte[]> md5key = signatureGenerator.startDigest(output, "MD5");
+        ChannelWrapper.Key<byte[]> shakey = signatureGenerator.startDigest(output, "SHA");
+        ChannelWrapper.Key<byte[]> sha256key = signatureGenerator.startDigest(output, "SHA-256");
         signatureGenerator.startBeforeHeader(output, privateKeyHashAlgo);
         // Region concept. This tag contains an index record which specifies the portion of the Header Record
         // which was used for the calculation of a signature. This data shall be preserved or any header-only signature
         // will be invalidated.
-        SpecEntry<byte[]> immutable =
-                (SpecEntry<byte[]>) format.getHeader().addEntry(HeaderTag.HEADERIMMUTABLE, 16);
+        SpecEntry<byte[]> immutable = (SpecEntry<byte[]>) format.getHeader().addEntry(HeaderTag.HEADERIMMUTABLE, 16);
         immutable.setValues(createHeaderIndex(HeaderTag.IMMUTABLE.getCode(), format.getHeader().count()));
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+        DigestOutputStream digestOutputStream = new DigestOutputStream(byteArrayOutputStream, messageDigest);
+        int length = processPayload(digestOutputStream);
+        signaturHeaderPayloadEntry.setValues(IntegerList.of(length));
+        byte[] payload = byteArrayOutputStream.toByteArray();
+        byte[] payloadDigestBytes = messageDigest.digest();
+        String hex = hex(payloadDigestBytes);
+        payloadDigest.setValues(StringList.of(hex));
+        payloadDigestAlt.setValues(StringList.of(hex));
         format.getHeader().write(output);
         shaEntry.setValues(StringList.of(hex(output.finish(shakey))));
+        sha256Entry.setValues(StringList.of(hex(output.finish(sha256key))));
         signatureGenerator.finishAfterHeader(output);
-        OutputStream compressedOutputStream = createCompressedStream(Channels.newOutputStream(output));
-        WritableChannelWrapper compressedOutput =
-                new WritableChannelWrapper(Channels.newChannel(compressedOutputStream));
-        ChannelWrapper.Key<Integer> payloadkey = compressedOutput.start();
-        int total = 0;
-        ByteBuffer buffer = ByteBuffer.allocate(4096);
-        for (CpioHeader header : contents.headers()) {
-            if ((header.getFlags() & Directive.GHOST.flag()) == Directive.GHOST.flag()) {
-                continue;
-            }
-            String path = header.getName();
-            if (path.startsWith("/")) {
-                header.setName("." + path);
-            }
-            total = header.write(compressedOutput, total);
-            Object object = contents.getSource(header);
-            if (object instanceof Path) {
-                try (ReadableByteChannel readableByteChannel = Files.newByteChannel((Path) object)) {
-                    while (readableByteChannel.read(buffer.rewind()) > 0) {
-                        total += compressedOutput.write(buffer.flip());
-                        buffer.compact();
-                    }
-                    total += header.skip(compressedOutput, total);
-                }
-            } else if (object instanceof InputStream) {
-                try (ReadableByteChannel in = Channels.newChannel(((InputStream) object))) {
-                    while (in.read(buffer.rewind()) > 0) {
-                        total += compressedOutput.write(buffer.flip());
-                        buffer.compact();
-                    }
-                    total += header.skip(compressedOutput, total);
-                }
-            } else if (object instanceof URL) {
-                try (ReadableByteChannel in = Channels.newChannel(((URL) object).openConnection().getInputStream())) {
-                    while (in.read(buffer.rewind()) > 0) {
-                        total += compressedOutput.write(buffer.flip());
-                        buffer.compact();
-                    }
-                    total += header.skip(compressedOutput, total);
-                }
-            } else if (object != null) {
-                String string = object.toString();
-                total += compressedOutput.write(ByteBuffer.wrap(string.getBytes(StandardCharsets.UTF_8)));
-                total += header.skip(compressedOutput, string.length());
-            }
-        }
-        CpioHeader trailer = new CpioHeader();
-        trailer.setLast();
-        total = trailer.write(compressedOutput, total);
-        trailer.skip(compressedOutput, total);
-        int length = compressedOutput.finish(payloadkey);
-        int pad = difference(length, 3);
-        ChannelWrapper.empty(compressedOutput, ByteBuffer.allocate(pad));
-        length += pad;
-        signaturHeaderPayloadEntry.setValues(IntegerList.of(length));
-        // flush compressed stream here
-        compressedOutputStream.flush();
+        output.write(ByteBuffer.wrap(payload));
         md5Entry.setValues(output.finish(md5key));
         sigsize.setValues(IntegerList.of(output.finish(sigsizekey)));
         signatureGenerator.finishAfterPayload(output);
@@ -1319,6 +1269,68 @@ public class RpmBuilder {
         }
         // not reached
         return outputStream;
+    }
+
+    private int processPayload(OutputStream outputStream) throws IOException {
+        OutputStream compressedOutputStream = createCompressedStream(outputStream);
+        WritableChannelWrapper compressedOutput = new WritableChannelWrapper(Channels.newChannel(compressedOutputStream));
+        ChannelWrapper.Key<Integer> payloadkey = compressedOutput.startCount();
+        int total = 0;
+        ByteBuffer buffer = ByteBuffer.allocate(4096);
+        for (CpioHeader header : contents.headers()) {
+            if ((header.getFlags() & Directive.GHOST.flag()) == Directive.GHOST.flag()) {
+                continue;
+            }
+            String path = header.getName();
+            if (path.startsWith("/")) {
+                header.setName("." + path);
+            }
+            total = header.write(compressedOutput, total);
+            Object object = contents.getSource(header);
+            if (object instanceof Path) {
+                try (ReadableByteChannel readableByteChannel = Files.newByteChannel((Path) object)) {
+                    while (readableByteChannel.read(buffer.rewind()) > 0) {
+                        ByteBuffer byteBuffer = buffer.flip();
+                        total += compressedOutput.write(byteBuffer);
+                        buffer.compact();
+                    }
+                    total += header.skip(compressedOutput, total);
+                }
+            } else if (object instanceof InputStream) {
+                try (ReadableByteChannel in = Channels.newChannel(((InputStream) object))) {
+                    while (in.read(buffer.rewind()) > 0) {
+                        ByteBuffer byteBuffer = buffer.flip();
+                        total += compressedOutput.write(byteBuffer);
+                        buffer.compact();
+                    }
+                    total += header.skip(compressedOutput, total);
+                }
+            } else if (object instanceof URL) {
+                try (ReadableByteChannel in = Channels.newChannel(((URL) object).openConnection().getInputStream())) {
+                    while (in.read(buffer.rewind()) > 0) {
+                        ByteBuffer byteBuffer = buffer.flip();
+                        total += compressedOutput.write(byteBuffer);
+                        buffer.compact();
+                    }
+                    total += header.skip(compressedOutput, total);
+                }
+            } else if (object != null) {
+                String string = object.toString();
+                ByteBuffer byteBuffer = ByteBuffer.wrap(string.getBytes(StandardCharsets.UTF_8));
+                total += compressedOutput.write(byteBuffer);
+                total += header.skip(compressedOutput, string.length());
+            }
+        }
+        CpioHeader trailer = new CpioHeader();
+        trailer.setLast();
+        total = trailer.write(compressedOutput, total);
+        trailer.skip(compressedOutput, total);
+        int length = compressedOutput.finish(payloadkey);
+        int pad = difference(length, 3);
+        ChannelWrapper.empty(compressedOutput, ByteBuffer.allocate(pad));
+        length += pad;
+        compressedOutputStream.flush();
+        return length;
     }
 
     /**

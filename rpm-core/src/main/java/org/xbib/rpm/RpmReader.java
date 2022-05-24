@@ -133,17 +133,17 @@ public class RpmReader {
      */
     public Format readHeader(ReadableChannelWrapper channelWrapper) throws IOException {
         Format format = new Format();
-        ChannelWrapper.Key<Integer> headerStartKey = channelWrapper.start();
-        ChannelWrapper.Key<Integer> lead = channelWrapper.start();
+        ChannelWrapper.Key<Integer> headerStartKey = channelWrapper.startCount();
+        ChannelWrapper.Key<Integer> lead = channelWrapper.startCount();
         format.getLead().read(channelWrapper);
-        ChannelWrapper.Key<Integer> signature = channelWrapper.start();
+        ChannelWrapper.Key<Integer> signature = channelWrapper.startCount();
         int count = format.getSignatureHeader().read(channelWrapper);
         SpecEntry<?> sigEntry = format.getSignatureHeader().getEntry(SignatureTag.SIGNATURES);
         int expected = sigEntry == null ? 0 :
                 ByteBuffer.wrap((byte[]) sigEntry.getValues(), 8, 4).getInt() / -16;
         Integer headerStartPos = channelWrapper.finish(headerStartKey);
         format.getHeader().setStartPos(headerStartPos);
-        ChannelWrapper.Key<Integer> headerKey = channelWrapper.start();
+        ChannelWrapper.Key<Integer> headerKey = channelWrapper.startCount();
         count = format.getHeader().read(channelWrapper);
         SpecEntry<?> immutableEntry = format.getHeader().getEntry(HeaderTag.HEADERIMMUTABLE);
         expected = immutableEntry == null ? 0 :

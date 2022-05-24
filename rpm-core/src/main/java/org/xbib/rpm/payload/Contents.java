@@ -1,6 +1,5 @@
 package org.xbib.rpm.payload;
 
-import org.xbib.rpm.exception.RpmException;
 import org.xbib.rpm.header.IntegerList;
 import org.xbib.rpm.header.ShortList;
 import org.xbib.rpm.header.StringList;
@@ -508,10 +507,10 @@ public class Contents {
      *
      * @param hashAlgo the hash algo
      * @return the digest hashes
-     * @throws RpmException if the algorithm isn't supported
+     * @throws NoSuchAlgorithmException if the algorithm isn't supported
      * @throws IOException there was an IO error
      */
-    public StringList getDigests(HashAlgo hashAlgo) throws IOException, RpmException {
+    public StringList getDigests(HashAlgo hashAlgo) throws IOException, NoSuchAlgorithmException {
         ByteBuffer buffer = ByteBuffer.allocate(4096);
         StringList array = new StringList();
         for (CpioHeader header : headers) {
@@ -525,8 +524,6 @@ public class Contents {
                             buffer.rewind();
                         }
                         value = hex(input.finish(key));
-                    } catch (NoSuchAlgorithmException e) {
-                        throw new RpmException(e);
                     }
                 }
             } else if (object instanceof URL) {
@@ -540,8 +537,6 @@ public class Contents {
                             }
                             value = hex(input.finish(key));
                         }
-                    } catch (NoSuchAlgorithmException e) {
-                        throw new RpmException(e);
                     }
                 }
             }
@@ -576,7 +571,7 @@ public class Contents {
                 }
             }
         };
-        return input.start(consumer);
+        return input.startCount(consumer);
     }
 
     /**

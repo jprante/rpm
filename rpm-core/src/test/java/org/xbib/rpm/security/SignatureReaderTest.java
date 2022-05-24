@@ -9,9 +9,6 @@ import org.xbib.rpm.signature.SignatureTag;
 
 import java.nio.file.Paths;
 
-/**
- *
- */
 public class SignatureReaderTest {
 
     @Test

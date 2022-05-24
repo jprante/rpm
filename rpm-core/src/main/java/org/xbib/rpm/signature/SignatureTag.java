@@ -23,7 +23,7 @@ public enum SignatureTag implements EntryType {
     LONGSIGSIZE(270, INT64_ENTRY, "longsigsize"),
     LONGARCHIVESIZE(271, INT64_ENTRY, "longarchivesize"),
     // 272 is reserved
-    SHA256(273, BIN_ENTRY, "sha256"),
+    SHA256HEADER(273, STRING_ENTRY, "sha256header"),
 
     LEGACY_SIGSIZE(1000, INT32_ENTRY, "sigsize"),
     LEGACY_PGP(1002, BIN_ENTRY, "pgp"),

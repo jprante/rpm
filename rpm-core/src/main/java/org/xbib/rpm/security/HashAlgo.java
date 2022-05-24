@@ -4,7 +4,6 @@ package org.xbib.rpm.security;
 /**
  * Enumeration of hash algorithms as of RFC 4880.
  *
- * See also {@link org.bouncycastle.bcpg.HashAlgorithmTags}
  */
 public enum HashAlgo {
 

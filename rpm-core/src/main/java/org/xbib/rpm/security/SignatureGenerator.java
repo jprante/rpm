@@ -26,7 +26,6 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.SignatureException;
 import java.util.Iterator;
 
 /**
@@ -75,8 +74,8 @@ public class SignatureGenerator {
     public void startBeforeHeader(WritableChannelWrapper output, HashAlgo algo) throws RpmException {
         if (enabled) {
             try {
-                headerOnlyKey = output.start(new SignatureConsumer(algo.num()));
-                headerAndPayloadKey = output.start(new SignatureConsumer(algo.num()));
+                headerOnlyKey = output.startCount(new SignatureConsumer(algo.num()));
+                headerAndPayloadKey = output.startCount(new SignatureConsumer(algo.num()));
             } catch (PGPException e) {
                 throw new RpmException(e);
             }
@@ -113,7 +112,7 @@ public class SignatureGenerator {
                     }
                 }
             };
-            return output.start(consumer);
+            return output.startCount(consumer);
         } catch (NoSuchAlgorithmException e) {
             throw new RpmException(e);
         }
@@ -199,7 +198,7 @@ public class SignatureGenerator {
             int keyAlgorithm = privateKey.getPublicKeyPacket().getAlgorithm();
             BcPGPContentSignerBuilder contentSignerBuilder =
                     new BcPGPContentSignerBuilder(keyAlgorithm, hashAlgorithm);
-            this.pgpSignatureGenerator = new PGPSignatureGenerator(contentSignerBuilder);
+            pgpSignatureGenerator = new PGPSignatureGenerator(contentSignerBuilder);
             pgpSignatureGenerator.init(PGPSignature.BINARY_DOCUMENT, privateKey);
         }
 
