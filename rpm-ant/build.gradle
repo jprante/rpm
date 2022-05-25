@@ -1,6 +1,6 @@
 dependencies {
     api project(':rpm-core')
-    implementation "org.apache.ant:ant:${project.property('ant.version')}"
+    implementation libs.ant
 }
 
 apply from: rootProject.file('gradle/publishing/publication.gradle')
